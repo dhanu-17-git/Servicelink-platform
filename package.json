@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "dev": "npx serve servicelink",
+    "preview": "npx serve servicelink"
+  },
+  "dependencies": {
+    "motion": "^12.38.0"
+  }
+}

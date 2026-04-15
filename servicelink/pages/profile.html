@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | ServiceLink</title>
+  <link rel="stylesheet" href="../css/main.css?v=stitch-refresh-3">
+</head>
+<body>
+  <div data-app-nav></div>
+  <main class="app-shell">
+    <section class="container stack-lg">
+      <div class="hero-panel" data-reveal>
+        <div>
+          <span class="page-kicker">Profile</span>
+          <h1 class="page-title mt-3">Complete your booking profile.</h1>
+          <p class="page-lede mt-4">Bookings need a complete name, contact, and address so workers and rentals can be confirmed reliably.</p>
+        </div>
+      </div>
+
+      <form id="profile-form" class="app-card p-6 sm:p-8 stack-lg">
+        <div id="profile-warning" class="badge badge-warning" style="width:max-content; display:none">Please complete your profile before booking</div>
+        <div class="profile-grid">
+          <div>
+            <label class="form-label">Full Name</label>
+            <input class="input" name="fullName" required>
+          </div>
+          <div>
+            <label class="form-label">Phone Number</label>
+            <input class="input" name="phone" required>
+          </div>
+          <div>
+            <label class="form-label">Email</label>
+            <input class="input" name="email" type="email" required>
+          </div>
+          <div>
+            <label class="form-label">City</label>
+            <input class="input" name="city" required>
+          </div>
+          <div>
+            <label class="form-label">Address</label>
+            <input class="input" name="address" required>
+          </div>
+          <div>
+            <label class="form-label">Pincode</label>
+            <input class="input" name="pincode" required>
+          </div>
+        </div>
+        <div class="inline-actions">
+          <button class="btn btn-primary btn-lg" type="submit">Save Profile</button>
+          <a class="btn btn-secondary btn-lg" href="dashboard.html">Dashboard</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="../js/app-state.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/page-common.js"></script>
+  <script>
+    if (!AppState.isLoggedIn()) {
+      location.href = `login.html?redirect=${encodeURIComponent(location.href)}`;
+    }
+    const form = document.getElementById('profile-form');
+    const profile = AppState.profile();
+    Object.entries(profile).forEach(([key, value]) => {
+      if (form[key]) form[key].value = value || '';
+    });
+    if (!AppState.isProfileComplete(profile)) {
+      document.getElementById('profile-warning').style.display = 'inline-flex';
+    }
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const result = Validator.validateForm(form, {
+        fullName: ['required', 'minLength:2'],
+        phone: ['required', 'phone'],
+        email: ['required', 'email'],
+        address: ['required'],
+        city: ['required'],
+        pincode: ['required', 'minLength:5']
+      });
+      if (!result.isValid) return;
+      AppState.saveProfile(Object.fromEntries(new FormData(form).entries()));
+      Toast.success('Profile saved');
+      const redirect = new URLSearchParams(location.search).get('redirect');
+      setTimeout(() => { location.href = redirect || 'dashboard.html'; }, 350);
+    });
+  </script>
+</body>
+</html>

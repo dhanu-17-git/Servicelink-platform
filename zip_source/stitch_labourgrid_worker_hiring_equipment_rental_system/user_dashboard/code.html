@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ServiceLink | Professional Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(250, 248, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #003594 0%, #004ac6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#d2d9f4",
+                        "surface-variant": "#dae2fd",
+                        "surface-container-low": "#f2f3ff",
+                        "on-tertiary-container": "#ffba97",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#dae2fd",
+                        "on-tertiary-fixed-variant": "#783200",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "surface": "#faf8ff",
+                        "outline": "#737685",
+                        "on-secondary-fixed-variant": "#354574",
+                        "on-background": "#131b2e",
+                        "tertiary-fixed-dim": "#ffb690",
+                        "secondary-container": "#b8c8ff",
+                        "surface-tint": "#1b55d0",
+                        "secondary-fixed-dim": "#b5c5fc",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#4d5d8d",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-surface": "#131b2e",
+                        "tertiary": "#692b00",
+                        "on-tertiary-fixed": "#341100",
+                        "background": "#faf8ff",
+                        "surface-bright": "#faf8ff",
+                        "secondary-fixed": "#dbe1ff",
+                        "primary-container": "#004ac6",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#283044",
+                        "inverse-primary": "#b4c5ff",
+                        "outline-variant": "#c3c6d6",
+                        "tertiary-fixed": "#ffdbca",
+                        "on-primary-fixed": "#00174b",
+                        "tertiary-container": "#8e3c00",
+                        "primary-fixed": "#dbe1ff",
+                        "on-secondary-fixed": "#051846",
+                        "on-primary-container": "#b8c8ff",
+                        "on-surface-variant": "#434654",
+                        "on-secondary-container": "#435282",
+                        "surface-container-high": "#e2e7ff",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "primary": "#003594",
+                        "inverse-on-surface": "#eef0ff",
+                        "surface-container": "#eaedff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="bg-slate-50 dark:bg-slate-950 h-screen w-64 fixed left-0 top-0 z-40 flex flex-col p-4 shadow-none">
+<div class="flex items-center gap-3 px-2 mb-10">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" data-icon="handyman">handyman</span>
+</div>
+<div>
+<h1 class="font-bold text-blue-800 dark:text-blue-200 leading-tight">ServiceLink</h1>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Professional Suite</p>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="storefront">storefront</span>
+<span class="text-sm font-medium">Marketplace</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="handyman">handyman</span>
+<span class="text-sm font-medium">Tool Catalog</span>
+</a>
+<!-- ACTIVE NAV: Active Bookings -->
+<a class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 rounded-xl shadow-sm transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="event_available">event_available</span>
+<span class="text-sm font-bold">Active Bookings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="text-sm font-medium">Messages</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="mt-auto space-y-4">
+<button class="w-full py-3 px-4 bg-primary text-on-primary rounded-xl font-bold text-sm shadow-md hover:opacity-90 transition-opacity">
+                    List Your Tool
+                </button>
+<div class="pt-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 text-sm hover:text-blue-600" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="help">help</span>
+                        Support
+                    </a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 text-sm hover:text-error" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+                        Log Out
+                    </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-64 p-8 min-h-screen">
+<!-- Top Header Area -->
+<header class="flex justify-between items-end mb-12">
+<div class="max-w-2xl">
+<h2 class="text-5xl font-extrabold tracking-tight text-on-background font-headline mb-4">Hello, Jonathan</h2>
+<p class="text-lg text-on-surface-variant leading-relaxed">You have <span class="font-bold text-primary">2 services</span> active today. Your professional is currently en-route.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-fixed">
+<img alt="User profile avatar" data-alt="close-up portrait of a professional male in a corporate setting with soft natural window lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5Sz9D-7g9rPUxWQjvioZzV4ACiwmGOF2cpfRzbNvn4yAvfZDl4x0mxNjZPgkxqDODZmZI5tT6_t6WS88dhcAVW4yMU9PggHadWLyJGpUleVH_AkBNp2KLq06SnvEd--q0sPrswS9TUoq0V3lPV69luANu0gxwDclhiHkphFp7o_-9LIDDjO8ooxXW24W1EtNP4zhaKZ-PW-5tsukbOxo6Wc9iwEuzcGp-H0YY1tmxgzY3H9htuWoAZ8RKx4nDHFUe-98qR-lEAPAt"/>
+</div>
+</div>
+</header>
+<!-- Bento Grid Dashboard Layout -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Main Active Tracking Card -->
+<section class="col-span-12 lg:col-span-8 space-y-6">
+<div class="bg-surface-container-low rounded-xl p-8 relative overflow-hidden">
+<div class="flex justify-between items-start mb-12">
+<div>
+<span class="px-3 py-1 bg-primary text-on-primary text-[10px] font-black uppercase tracking-widest rounded-full mb-4 inline-block">Live Tracking</span>
+<h3 class="text-2xl font-bold font-headline text-on-surface">Precision Plumbing Repair</h3>
+<p class="text-on-surface-variant">Booking Ref: #SL-99210-XP</p>
+</div>
+<div class="text-right">
+<p class="text-3xl font-black text-primary font-headline">5 mins</p>
+<p class="text-sm font-bold text-on-surface-variant uppercase tracking-tighter">Until Arrival</p>
+</div>
+</div>
+<!-- Progress Visualization -->
+<div class="flex items-center gap-2 mb-12">
+<div class="h-2 flex-1 bg-primary rounded-full"></div>
+<div class="h-2 flex-1 bg-primary rounded-full relative">
+<div class="absolute -right-1 -top-3 w-8 h-8 bg-white rounded-full shadow-lg border-4 border-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="local_shipping">local_shipping</span>
+</div>
+</div>
+<div class="h-2 flex-1 bg-surface-container-highest rounded-full"></div>
+<div class="h-2 flex-1 bg-surface-container-highest rounded-full"></div>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-6 p-6 bg-white/60 backdrop-blur-md rounded-lg">
+<div class="flex items-center gap-4">
+<img alt="Pro avatar" class="w-14 h-14 rounded-full object-cover" data-alt="professional service provider in a clean uniform smiling confidently against a blurred workshop background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDN_mZBrunOEVU_3MAp3zWiqyLQT0Z9ImTS4WFevqqC5d8JfR7LD31SuRxemcXh9ku4jBL5KWtrHgm_hCNY1cHNORYsum3FKZILUQlPUb-OwUJS0ZQ_K-MPpC5zlhMdp5UKiJCCnE6NxWUZQ4BwOegOIE_95D27m6Crpa8X3eVaY2_xlPRYXnIvRc1MknQ8gZki8zv82o8qZruM9j7eySJa9B2-4V_fBg_xCo6Sk_wxk4qAdb2a4t9AOk6agAiT_2lUbEejvV3IfQBN"/>
+<div>
+<p class="font-bold text-on-surface">Marcus Thorne</p>
+<div class="flex items-center gap-1 text-tertiary-container">
+<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-bold">4.9 Master Pro</span>
+</div>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2.5 bg-surface-container-highest text-on-surface rounded-full font-bold text-sm hover:bg-surface-dim transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="chat">chat</span>
+                                    Message
+                                </button>
+<button class="px-6 py-2.5 bg-primary text-on-primary rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
+                                    View Map
+                                </button>
+</div>
+</div>
+</div>
+<!-- Secondary Active Job -->
+<div class="bg-white rounded-lg p-6 flex items-center gap-6 shadow-sm">
+<div class="w-20 h-20 bg-surface-container-low rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-primary" data-icon="mowing">grass</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-1">
+<h4 class="font-bold text-lg">Landscape Maintenance</h4>
+<span class="text-xs font-black text-tertiary uppercase tracking-widest">In Progress</span>
+</div>
+<p class="text-sm text-on-surface-variant mb-3">Started at 09:30 AM • Estimated 2h remain</p>
+<div class="w-full bg-surface-container-low h-1 rounded-full overflow-hidden">
+<div class="bg-tertiary w-1/3 h-full"></div>
+</div>
+</div>
+<button class="w-12 h-12 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</section>
+<!-- Sidebar Contextual Area -->
+<aside class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Notifications/Activity -->
+<div class="bg-surface-container-highest/30 rounded-lg p-6">
+<h3 class="font-bold text-lg font-headline mb-6">Recent Activity</h3>
+<div class="space-y-6">
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 flex-shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="check_circle">check_circle</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">Payment Confirmed</p>
+<p class="text-xs text-on-surface-variant">Your payment for "Pressure Wash" was processed successfully.</p>
+<p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">2 hours ago</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="rate_review">rate_review</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">Review Requested</p>
+<p class="text-xs text-on-surface-variant">How was your experience with Sarah's Garden Service?</p>
+<p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Yesterday</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Re-book Section -->
+<div class="bg-white rounded-lg p-6 shadow-sm">
+<h3 class="font-bold text-lg font-headline mb-6">Quick Re-book</h3>
+<div class="space-y-4">
+<div class="group cursor-pointer p-4 rounded-xl border border-transparent hover:border-primary-fixed hover:bg-surface-container-low transition-all">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary" data-icon="electric_bolt">electric_bolt</span>
+<p class="font-bold text-sm">Electrical Safety Audit</p>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-xs text-on-surface-variant">Last service: Oct 12</p>
+<span class="text-primary text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                        Re-book <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</span>
+</div>
+</div>
+<div class="group cursor-pointer p-4 rounded-xl border border-transparent hover:border-primary-fixed hover:bg-surface-container-low transition-all">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary" data-icon="cleaning_services">cleaning_services</span>
+<p class="font-bold text-sm">Deep Carpet Clean</p>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-xs text-on-surface-variant">Last service: Sep 30</p>
+<span class="text-primary text-xs font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                        Re-book <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Orange Moment -->
+<div class="bg-tertiary rounded-xl p-8 text-on-tertiary relative overflow-hidden">
+<div class="absolute -right-4 -bottom-4 opacity-10">
+<span class="material-symbols-outlined text-[120px]" data-icon="construction">construction</span>
+</div>
+<h4 class="text-xl font-black font-headline mb-2">Winterize Your Home</h4>
+<p class="text-sm mb-6 opacity-90 leading-relaxed">Save 15% on professional winter prep services this week.</p>
+<button class="w-full py-3 bg-white text-tertiary font-bold rounded-full text-sm hover:scale-95 transition-transform">
+                            Explore Offers
+                        </button>
+</div>
+</aside>
+</div>
+<!-- Bottom Footer Area (Shell Style) -->
+<footer class="mt-20 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-transparent bg-slate-50 dark:bg-slate-950 rounded-t-xl px-4">
+<div class="col-span-2">
+<p class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">ServiceLink</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm">© 2024 ServiceLink Technologies Inc. Professional Grade Marketplace.</p>
+</div>
+<div class="space-y-3">
+<p class="text-sm font-bold text-on-surface font-headline">Company</p>
+<ul class="space-y-2 text-xs text-slate-500">
+<li><a class="hover:text-blue-500 transition-colors" href="#">Privacy Policy</a></li>
+<li><a class="hover:text-blue-500 transition-colors" href="#">Terms of Service</a></li>
+</ul>
+</div>
+<div class="space-y-3">
+<p class="text-sm font-bold text-on-surface font-headline">Support</p>
+<ul class="space-y-2 text-xs text-slate-500">
+<li><a class="hover:text-blue-500 transition-colors" href="#">Safety Guidelines</a></li>
+<li><a class="hover:text-blue-500 transition-colors" href="#">Insurance &amp; Trust</a></li>
+</ul>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

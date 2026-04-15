@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking | ServiceLink</title>
+  <link rel="stylesheet" href="../css/main.css?v=stitch-refresh-3">
+</head>
+<body>
+  <div data-app-nav></div>
+  <main class="app-shell">
+    <section class="container stack-lg" id="booking-wizard">
+      <div class="hero-panel" data-reveal>
+        <div>
+          <span class="page-kicker">Protected checkout</span>
+          <h1 class="page-title mt-3">Confirm your booking.</h1>
+          <p class="page-lede mt-4">We check login and profile completion before checkout so every booking has reliable contact and location details.</p>
+        </div>
+      </div>
+
+      <div class="booking-layout">
+        <form class="app-card p-6 sm:p-8 stack-lg">
+          <div class="flex flex-wrap gap-3">
+            <span class="step-chip active" data-step-chip="1">1</span>
+            <span class="step-chip" data-step-chip="2">2</span>
+            <span class="step-chip" data-step-chip="3">3</span>
+            <span class="step-chip" data-step-chip="4">4</span>
+            <span class="step-chip" data-step-chip="5">5</span>
+          </div>
+
+          <section class="booking-step active stack" data-step="1">
+            <h2 class="font-display text-2xl font-bold">Selection</h2>
+            <div id="booking-selected" class="app-card p-5"></div>
+          </section>
+
+          <section class="booking-step stack" data-step="2">
+            <h2 class="font-display text-2xl font-bold">Schedule</h2>
+            <div class="form-row">
+              <div>
+                <label class="form-label">Date</label>
+                <input id="booking-date" name="date" data-booking-input class="input" type="date" required>
+              </div>
+              <div>
+                <label class="form-label">Time</label>
+                <input name="time" data-booking-input class="input" type="time" required>
+              </div>
+              <div>
+                <label class="form-label">Hours / Days</label>
+                <input name="duration" data-booking-input class="input" type="number" min="1" value="1" required>
+              </div>
+            </div>
+          </section>
+
+          <section class="booking-step stack" data-step="3">
+            <h2 class="font-display text-2xl font-bold">Location</h2>
+            <div class="form-row">
+              <div>
+                <label class="form-label">Address</label>
+                <input name="address" data-booking-input class="input" required>
+              </div>
+              <div>
+                <label class="form-label">City</label>
+                <input name="city" data-booking-input class="input" required>
+              </div>
+              <div>
+                <label class="form-label">Pincode</label>
+                <input name="pincode" data-booking-input class="input" required>
+              </div>
+            </div>
+          </section>
+
+          <section class="booking-step stack" data-step="4">
+            <h2 class="font-display text-2xl font-bold">Notes</h2>
+            <textarea name="notes" data-booking-input class="input" rows="5" placeholder="Access instructions, issue details, preferred handoff..."></textarea>
+          </section>
+
+          <section class="booking-step stack" data-step="5">
+            <h2 class="font-display text-2xl font-bold">Review</h2>
+            <div id="booking-summary" class="stack"></div>
+          </section>
+
+          <div class="inline-actions">
+            <button id="booking-prev" class="btn btn-secondary" type="button">Back</button>
+            <button id="booking-next" class="btn btn-primary" type="button">Next</button>
+            <button id="booking-confirm" class="btn btn-accent" type="button" style="display:none">Confirm Booking</button>
+          </div>
+        </form>
+
+        <aside class="app-card p-6 stack-lg">
+          <h2 class="font-display text-2xl font-bold">Summary</h2>
+          <div id="booking-sidebar-summary"></div>
+          <div id="booking-price"></div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script src="../js/app-state.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/page-common.js"></script>
+  <script src="../js/user-flow.js"></script>
+</body>
+</html>
