@@ -32,7 +32,7 @@ This folder contains the "Upgraded" frontend for the ServiceLink marketplace pro
 
 ## 🔌 Backend Integration
 The frontend is configured to communicate with a backend API at:
-`http://localhost:5000/api`
+`http://localhost:8000/api`
 
 Key endpoints used:
 - `/auth/profile`: For token verification.
