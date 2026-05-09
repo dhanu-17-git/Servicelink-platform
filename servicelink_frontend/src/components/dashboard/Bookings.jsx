@@ -1,5 +1,11 @@
 import { useState } from 'react';
 import { Calendar, Clock, MapPin, Tag, X, User, IndianRupee } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
+import { API_BASE, authHeaders } from '../../api/config';
+import { useNavigate } from 'react-router-dom';
+import ReviewModal from '../ReviewModal';
+import InvoiceModal from '../InvoiceModal';
+import ChatDrawer from '../ChatDrawer';
 
 const statusColor = {
   pending: 'bg-amber-50 text-amber-700 border-amber-100',
@@ -12,6 +18,53 @@ const statusColor = {
 
 const Bookings = ({ bookings }) => {
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [reviewBooking, setReviewBooking] = useState(null);
+  const [invoiceBooking, setInvoiceBooking] = useState(null);
+  const [chatBooking, setChatBooking] = useState(null);
+  const toast = useToast();
+  const navigate = useNavigate();
+  const [localBookings, setLocalBookings] = useState(bookings);
+
+  const handleCancelBooking = async () => {
+    if (!cancelReason.trim()) {
+      toast.info('Please select a reason');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/bookings/${cancellingId}/status`,
+        {
+          method: 'PATCH',
+          headers: authHeaders(),
+          body: JSON.stringify({ status: 'cancelled', reason: cancelReason }),
+        }
+      );
+
+      if (response.ok) {
+        // Update local bookings
+        setLocalBookings(prev =>
+          prev.map(b =>
+            b.id === cancellingId
+              ? { ...b, status: 'cancelled', cancellationReason: cancelReason }
+              : b
+          )
+        );
+        toast.success('Booking cancelled successfully');
+        setShowCancelModal(false);
+        setCancellingId(null);
+        setCancelReason('');
+        setSelectedBooking(null);
+      } else {
+        toast.info('Failed to cancel booking');
+      }
+    } catch (err) {
+      toast.info('Failed to cancel. Please try again.');
+    }
+  };
 
   return (
     <div className="animate-reveal">
@@ -21,7 +74,7 @@ const Bookings = ({ bookings }) => {
       </div>
 
       <div className="space-y-4">
-        {bookings.length > 0 ? bookings.map((b) => (
+        {localBookings.length > 0 ? localBookings.map((b) => (
           <div key={b.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md transition-shadow">
             <div className="flex items-start gap-4">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${b.bookingType === 'worker' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -61,6 +114,30 @@ const Bookings = ({ bookings }) => {
               <button onClick={() => setSelectedBooking(b)} className="text-sm font-semibold text-muted hover:text-heading px-4 py-2 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                 View Details
               </button>
+              {['pending', 'confirmed'].includes(b.status?.toLowerCase()) && (
+                <button
+                  onClick={() => { setCancellingId(b.id); setShowCancelModal(true); }}
+                  className="text-sm font-semibold text-red-500 hover:text-red-700 px-4 py-2 rounded-lg border border-red-100 hover:bg-red-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              {['navigating', 'arrived'].includes(b.status?.toLowerCase()) && (
+                <button
+                  onClick={() => navigate(`/track/${b.id}`)}
+                  className="text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg shadow-sm transition-colors"
+                >
+                  Track Live
+                </button>
+              )}
+              {b.status?.toLowerCase() === 'completed' && (
+                <button
+                  onClick={() => setReviewBooking(b)}
+                  className="text-sm font-semibold text-amber-600 hover:text-amber-700 px-4 py-2 rounded-lg border border-amber-200 hover:bg-amber-50 transition-colors"
+                >
+                  Rate Worker
+                </button>
+              )}
             </div>
           </div>
         )) : (
@@ -139,6 +216,31 @@ const Bookings = ({ bookings }) => {
                     </p>
                   )}
                 </div>
+                
+                {/* Action Buttons */}
+                <div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => { setChatBooking(selectedBooking); setSelectedBooking(null); }}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-colors"
+                  >
+                    Chat with Worker
+                  </button>
+                  {selectedBooking.status?.toLowerCase() === 'completed' ? (
+                    <button 
+                      onClick={() => { setInvoiceBooking(selectedBooking); setSelectedBooking(null); }}
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-colors"
+                    >
+                      Download Invoice
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => { navigate(`/track/${selectedBooking.id}`); }}
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-colors"
+                    >
+                      Live Tracking
+                    </button>
+                  )}
+                </div>
 
               </div>
             </div>
@@ -146,6 +248,58 @@ const Bookings = ({ bookings }) => {
           </div>
         </div>
       )}
+
+      {/* Cancellation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-reveal">
+            
+            <div className="bg-red-50 border-b border-red-100 p-6">
+              <h3 className="text-lg font-bold text-red-900">Cancel Booking?</h3>
+              <p className="text-sm text-red-700 mt-1">This action cannot be undone.</p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-heading mb-2">Reason for cancellation</label>
+                <select
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent"
+                >
+                  <option value="">Select a reason</option>
+                  <option value="Change of plans">Change of plans</option>
+                  <option value="Found a cheaper option">Found a cheaper option</option>
+                  <option value="Worker not responding">Worker not responding</option>
+                  <option value="Incorrect booking">Incorrect booking</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleCancelBooking}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors"
+              >
+                Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feature Modals */}
+      <ReviewModal isOpen={!!reviewBooking} onClose={() => setReviewBooking(null)} booking={reviewBooking || {}} />
+      <InvoiceModal isOpen={!!invoiceBooking} onClose={() => setInvoiceBooking(null)} booking={invoiceBooking || {}} />
+      <ChatDrawer isOpen={!!chatBooking} onClose={() => setChatBooking(null)} booking={chatBooking || {}} />
     </div>
   );
 };

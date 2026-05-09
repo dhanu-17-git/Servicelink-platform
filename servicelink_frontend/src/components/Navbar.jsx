@@ -1,18 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BadgeCheck, Bell, BriefcaseBusiness, LogIn, LogOut, Menu, ShoppingCart, TrendingUp, UserPlus, X } from 'lucide-react';
+import { BadgeCheck, Bell, BriefcaseBusiness, LogIn, LogOut, Menu, ShoppingCart, TrendingUp, UserPlus, X, Moon, Sun, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
+import SearchOverlay from './SearchOverlay';
 import logo from '../../images/logo.jpeg';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const notifRef = useRef(null);
   const { user, logout } = useAuth();
   const { cartItems } = useCart();
   const { notifications, unreadCount, markAsRead, markAllRead } = useNotifications();
+  const { darkMode, toggleTheme } = useTheme();
   const location = useLocation();
   const isPartner = Boolean(user?.is_worker);
   const ownWorkerId = user?.worker_id || user?.worker?.id || user?.id;
@@ -21,6 +25,17 @@ const Navbar = () => {
     const handler = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotif(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, []);
 
   const customerLinks = [
@@ -105,6 +120,26 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-2">
+            {/* Search Button */}
+            {!isPartner && (
+              <button 
+                onClick={() => setShowSearch(true)} 
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/10 text-sm text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+              >
+                <Search className="w-4 h-4" />
+                <span className="hidden lg:inline">Search...</span>
+                <kbd className="hidden lg:inline text-[10px] font-bold bg-gray-200 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘K</kbd>
+              </button>
+            )}
+
+            {/* Dark Mode Toggle */}
+            <button 
+              onClick={toggleTheme} 
+              className="p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors"
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+
             {/* Notification Bell */}
             {user && (
               <div className="relative" ref={notifRef}>
@@ -208,6 +243,8 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      <SearchOverlay isOpen={showSearch} onClose={() => setShowSearch(false)} />
     </nav>
   );
 };

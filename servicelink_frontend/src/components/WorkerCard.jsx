@@ -1,11 +1,13 @@
-import { ArrowRight, BadgeCheck, Briefcase, Clock, MapPin, Star } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Briefcase, Clock, MapPin, Star, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { useFavourites } from '../context/FavouritesContext';
 
 const WorkerCard = ({ worker }) => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { toggleFavourite, isFavourite } = useFavourites();
   const [loading, setLoading] = useState(false);
 
   const openProfile = () => {
@@ -35,6 +37,12 @@ const WorkerCard = ({ worker }) => {
     >
       <div className="relative p-6 pb-4">
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-orange-50 via-white to-primary-50 opacity-80" />
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleFavourite(worker.id); }}
+          className="absolute top-4 left-4 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-sm hover:scale-110 transition-all z-10"
+        >
+          <Heart className={`w-4 h-4 transition-colors ${isFavourite(worker.id) ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} />
+        </button>
         <span
           className={`absolute top-4 right-4 px-2.5 py-1 text-xs font-bold rounded-full backdrop-blur-sm ${
             worker.available

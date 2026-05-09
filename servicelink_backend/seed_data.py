@@ -27,55 +27,55 @@ def seed():
     Tool.objects.all().delete()
     # Delete worker user accounts (keep admin/normal users)
     User.objects.filter(is_worker=True).delete()
-    print("  ✓ Old workers, tools, and bookings deleted.")
+    print("  - Old workers, tools, and bookings deleted.")
 
     # ── STEP 2: Create Workers (matching dummyData.js) ──
     print("\n[2/3] Creating 36 workers...")
 
     workers_data = [
         # Construction & Repair
-        ("Rajesh Kumar", "mason", 4.8, 350, "Mumbai", 8, True),
-        ("Suresh Patel", "carpenter", 4.9, 400, "Bangalore", 12, True),
-        ("Manoj Verma", "electrician", 4.5, 320, "Mumbai", 4, True),
-        ("Amit Sharma", "plumber", 4.6, 300, "Delhi", 5, True),
-        ("Prakash Rao", "welder", 4.6, 450, "Hyderabad", 9, True),
-        ("Vikram Singh", "painter", 4.7, 280, "Pune", 6, True),
-        ("Ravi Tiwari", "tile_worker", 4.4, 370, "Chennai", 7, True),
-        ("Santosh Gupta", "concrete_worker", 4.3, 340, "Kolkata", 5, False),
-        ("Bharat Yadav", "roofer", 4.5, 380, "Delhi", 8, True),
+        ("Rajesh Kumar", "mason", 4.8, 350, "Gokulam", 8, True),
+        ("Suresh Patel", "carpenter", 4.9, 400, "Jayalakshmipuram", 12, True),
+        ("Manoj Verma", "electrician", 4.5, 320, "Vijayanagar", 4, True),
+        ("Amit Sharma", "plumber", 4.6, 300, "Kuvempunagar", 5, True),
+        ("Prakash Rao", "welder", 4.6, 450, "J.P. Nagar", 9, True),
+        ("Vikram Singh", "painter", 4.7, 280, "Saraswathipuram", 6, True),
+        ("Ravi Tiwari", "tile_worker", 4.4, 370, "Hebbal", 7, True),
+        ("Santosh Gupta", "concrete_worker", 4.3, 340, "N.R. Mohalla", 5, False),
+        ("Bharat Yadav", "roofer", 4.5, 380, "Siddharthanagar", 8, True),
         # Home Services
-        ("Sunita Devi", "house_cleaner", 4.8, 200, "Mumbai", 6, True),
-        ("Meena Kumari", "cook", 4.9, 350, "Delhi", 10, True),
-        ("Priya Nair", "babysitter", 4.7, 250, "Bangalore", 4, True),
-        ("Ramesh Babu", "caretaker", 4.5, 280, "Chennai", 7, True),
-        ("Gopal Mishra", "gardener", 4.6, 220, "Pune", 9, True),
-        ("Kiran Sahu", "pest_control", 4.4, 400, "Hyderabad", 5, False),
+        ("Sunita Devi", "house_cleaner", 4.8, 200, "Yelwal", 6, True),
+        ("Meena Kumari", "cook", 4.9, 350, "Gokulam", 10, True),
+        ("Priya Nair", "babysitter", 4.7, 250, "Jayalakshmipuram", 4, True),
+        ("Ramesh Babu", "caretaker", 4.5, 280, "Vijayanagar", 7, True),
+        ("Gopal Mishra", "gardener", 4.6, 220, "Kuvempunagar", 9, True),
+        ("Kiran Sahu", "pest_control", 4.4, 400, "J.P. Nagar", 5, False),
         # Transport & Moving
-        ("Dinesh Pal", "loader", 4.3, 250, "Mumbai", 3, True),
-        ("Ajay Thakur", "mover", 4.6, 300, "Delhi", 6, True),
-        ("Rahul Das", "delivery", 4.5, 200, "Bangalore", 2, True),
-        ("Vijay Chauhan", "driver", 4.8, 350, "Pune", 10, True),
+        ("Dinesh Pal", "loader", 4.3, 250, "Saraswathipuram", 3, True),
+        ("Ajay Thakur", "mover", 4.6, 300, "Hebbal", 6, True),
+        ("Rahul Das", "delivery", 4.5, 200, "N.R. Mohalla", 2, True),
+        ("Vijay Chauhan", "driver", 4.8, 350, "Siddharthanagar", 10, True),
         # Skilled Technical
-        ("Deepak Joshi", "ac_technician", 4.8, 450, "Delhi", 10, True),
-        ("Arun Nair", "fridge_technician", 4.4, 400, "Bangalore", 7, True),
-        ("Naveen Reddy", "washing_technician", 4.5, 380, "Hyderabad", 5, True),
-        ("Sanjay Pandey", "mobile_technician", 4.7, 300, "Mumbai", 6, True),
-        ("Rohit Saxena", "computer_technician", 4.6, 450, "Pune", 8, True),
+        ("Deepak Joshi", "ac_technician", 4.8, 450, "Yelwal", 10, True),
+        ("Arun Nair", "fridge_technician", 4.4, 400, "Gokulam", 7, True),
+        ("Naveen Reddy", "washing_technician", 4.5, 380, "Jayalakshmipuram", 5, True),
+        ("Sanjay Pandey", "mobile_technician", 4.7, 300, "Vijayanagar", 6, True),
+        ("Rohit Saxena", "computer_technician", 4.6, 450, "Kuvempunagar", 8, True),
         # Agriculture & Outdoor
-        ("Lakshman Gowda", "farm_worker", 4.3, 200, "Bangalore", 15, True),
-        ("Mohan Prajapati", "harvester", 4.2, 220, "Pune", 12, True),
-        ("Harish Naik", "irrigation", 4.4, 250, "Chennai", 8, False),
-        ("Jagdish Meena", "dairy_worker", 4.5, 230, "Kolkata", 10, True),
+        ("Lakshman Gowda", "farm_worker", 4.3, 200, "J.P. Nagar", 15, True),
+        ("Mohan Prajapati", "harvester", 4.2, 220, "Saraswathipuram", 12, True),
+        ("Harish Naik", "irrigation", 4.4, 250, "Hebbal", 8, False),
+        ("Jagdish Meena", "dairy_worker", 4.5, 230, "N.R. Mohalla", 10, True),
         # Industrial
-        ("Pankaj Dubey", "factory_worker", 4.3, 280, "Mumbai", 6, True),
-        ("Sunil Yadav", "machine_operator", 4.6, 380, "Delhi", 9, True),
-        ("Kamal Jain", "packaging_worker", 4.2, 200, "Pune", 3, True),
-        ("Raju Mandal", "warehouse_worker", 4.4, 250, "Kolkata", 5, False),
+        ("Pankaj Dubey", "factory_worker", 4.3, 280, "Siddharthanagar", 6, True),
+        ("Sunil Yadav", "machine_operator", 4.6, 380, "Yelwal", 9, True),
+        ("Kamal Jain", "packaging_worker", 4.2, 200, "Gokulam", 3, True),
+        ("Raju Mandal", "warehouse_worker", 4.4, 250, "Jayalakshmipuram", 5, False),
         # Event & Temporary
-        ("Nitin Kulkarni", "event_setup", 4.5, 300, "Mumbai", 5, True),
-        ("Anand Pillai", "decorator", 4.8, 400, "Bangalore", 8, True),
-        ("Farhan Sheikh", "sound_light", 4.6, 450, "Delhi", 7, True),
-        ("Balraj Chauhan", "security_guard", 4.4, 250, "Hyderabad", 10, True),
+        ("Nitin Kulkarni", "event_setup", 4.5, 300, "Vijayanagar", 5, True),
+        ("Anand Pillai", "decorator", 4.8, 400, "Kuvempunagar", 8, True),
+        ("Farhan Sheikh", "sound_light", 4.6, 450, "J.P. Nagar", 7, True),
+        ("Balraj Chauhan", "security_guard", 4.4, 250, "Saraswathipuram", 10, True),
     ]
 
     for i, (name, skill, rating, price, city, exp, avail) in enumerate(workers_data, 1):
@@ -99,7 +99,7 @@ def seed():
             price_per_hour=Decimal(str(price)),
             availability=avail,
         )
-        print(f"  ✓ {name} ({skill}) — ₹{price}/hr")
+        print(f"  - {name} ({skill}) — Rs {price}/hr")
 
     # ── STEP 3: Create Tools (matching dummyData.js) ──
     print("\n[3/3] Creating 50 tools...")
@@ -177,13 +177,30 @@ def seed():
             image_url=img,
             availability=avail,
         )
-        print(f"  ✓ {name} ({category}) — ₹{price}/day")
+        print(f"  - {name} ({category}) — Rs {price}/day")
+
+    # ── STEP 4: Create Default Customer User ──
+    print("\n[4/4] Creating default customer...")
+    if not User.objects.filter(email="demo@gmail.com").exists():
+        User.objects.create_user(
+            email="demo@gmail.com",
+            password="password123",
+            name="Demo Customer",
+            phone="9876500000",
+            is_worker=False,
+            city="Mysore",
+            address="NIE North Campus, Manandavadi Road, Mysore",
+            pincode="570008",
+        )
+        print("  - demo@gmail.com created (Password: password123)")
+    else:
+        print("  - demo@gmail.com already exists.")
 
     # ── Summary ──
     print("\n" + "=" * 60)
-    print(f"  ✅ Workers: {Worker.objects.count()}")
-    print(f"  ✅ Tools:   {Tool.objects.count()}")
-    print(f"  ✅ Users:   {User.objects.count()}")
+    print(f"  - Workers: {Worker.objects.count()}")
+    print(f"  - Tools:   {Tool.objects.count()}")
+    print(f"  - Users:   {User.objects.count()}")
     print("=" * 60)
     print("  Seed complete! Frontend and backend are now in sync.")
 

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { API_BASE, authHeaders } from '../api/config';
 import { playSuccessPing } from '../utils/sound';
+import AddressManager from '../components/AddressManager';
 import phonepeIcon from '../../images/icons/phonepay.png';
 import gpayIcon from '../../images/icons/googlepay.png';
 import paytmIcon from '../../images/icons/paytym.png';
@@ -13,6 +14,23 @@ import amazonpayIcon from '../../images/icons/amazonpay.png';
 
 const MIN_BOOKING_AMOUNT = 500;
 const CONVENIENCE_FEE = 49;
+
+const COUPONS = {
+  'SUMMER50': { discount: 50, type: 'percent', maxDiscount: 200, label: '50% off (max ₹200)' },
+  'FIRST100': { discount: 100, type: 'flat', maxDiscount: 100, label: '₹100 off' },
+  'CLEAN30': { discount: 30, type: 'percent', maxDiscount: 300, label: '30% off (max ₹300)' },
+  'SAVE20': { discount: 20, type: 'percent', maxDiscount: 150, label: '20% off (max ₹150)' },
+  'WELCOME': { discount: 75, type: 'flat', maxDiscount: 75, label: '₹75 off first order' },
+};
+
+const timeSlots = [
+  { id: 'morning-1', label: '8:00 - 10:00 AM', period: 'Morning', icon: '🌅' },
+  { id: 'morning-2', label: '10:00 - 12:00 PM', period: 'Morning', icon: '🌅' },
+  { id: 'afternoon-1', label: '12:00 - 2:00 PM', period: 'Afternoon', icon: '☀️' },
+  { id: 'afternoon-2', label: '2:00 - 4:00 PM', period: 'Afternoon', icon: '☀️' },
+  { id: 'evening-1', label: '4:00 - 6:00 PM', period: 'Evening', icon: '🌆' },
+  { id: 'evening-2', label: '6:00 - 8:00 PM', period: 'Evening', icon: '🌆' },
+];
 
 const formatCurrency = (value) => `₹${Math.round(value).toLocaleString('en-IN')}`;
 
@@ -26,6 +44,10 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [step, setStep] = useState(1);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
 
   const directItem = location.state?.directItem || null;
   const bookingItems = directItem ? [directItem] : cartItems;
@@ -71,8 +93,20 @@ const Checkout = () => {
   const baseAmount = Math.max(rawBaseAmount, MIN_BOOKING_AMOUNT);
   const platformFee = Math.round(baseAmount * 0.05);
   const gst = Math.round(baseAmount * 0.18);
-  const totalAmount = baseAmount + platformFee + gst + CONVENIENCE_FEE;
-  const youSave = Math.round(baseAmount * 0.10);
+  
+  // Calculate coupon discount
+  let couponDiscount = 0;
+  if (appliedCoupon) {
+    const coupon = COUPONS[appliedCoupon];
+    if (coupon.type === 'percent') {
+      couponDiscount = Math.min(Math.round(baseAmount * coupon.discount / 100), coupon.maxDiscount);
+    } else {
+      couponDiscount = Math.min(coupon.discount, baseAmount);
+    }
+  }
+  
+  const totalAmount = baseAmount + platformFee + gst + CONVENIENCE_FEE - couponDiscount;
+  const youSave = Math.round(baseAmount * 0.10) + couponDiscount;
   const minimumApplied = rawBaseAmount > 0 && rawBaseAmount < MIN_BOOKING_AMOUNT;
 
   const handleNextStep = () => {
@@ -264,6 +298,34 @@ const Checkout = () => {
                     </div>
                   )}
 
+                  {/* Time Slot Picker */}
+                  <div className="mb-8">
+                    <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                      Preferred Time Slot
+                    </h3>
+                    {['Morning', 'Afternoon', 'Evening'].map((period) => (
+                      <div key={period} className="mb-5">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{period} {period === 'Morning' ? '🌅' : period === 'Afternoon' ? '☀️' : '🌆'}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.filter(s => s.period === period).map((slot) => (
+                            <button
+                              key={slot.id}
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all text-center ${
+                                selectedSlot?.id === slot.id
+                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
+                                  : 'border-gray-200 hover:border-blue-300 bg-white'
+                              }`}
+                            >
+                              <p className="text-xs font-bold text-slate-900">{slot.label}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <h3 className="text-sm font-bold text-slate-900 mb-4 border-b border-gray-100 pb-2">Order Summary ({bookingItems.length} items)</h3>
                   <div className="space-y-4">
                     {pricingData.map((item) => (
@@ -299,6 +361,21 @@ const Checkout = () => {
                   <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-emerald-500" /> Delivery Address
                   </h2>
+
+                  <div className="mb-8">
+                    <p className="text-sm font-bold text-slate-900 mb-4">Or choose a saved address:</p>
+                    <AddressManager onSelect={(addr) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        address: addr.address + ', ' + addr.city + ' - ' + addr.pincode,
+                        phone: formData.phone || user?.phone || '',
+                      }));
+                    }} />
+                  </div>
+
+                  <div className="relative mb-6 pt-4 border-t border-gray-200">
+                    <div className="absolute -top-3 left-4 bg-white px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Or enter a different address</div>
+                  </div>
 
                   <div className="space-y-5">
                     <div>
@@ -339,6 +416,56 @@ const Checkout = () => {
                   <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-indigo-500" /> Select Payment Method
                   </h2>
+
+                  {/* Coupon Section */}
+                  <div className="mb-8">
+                    <label className="block text-sm font-bold text-slate-900 mb-3">Apply Coupon Code</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value.toUpperCase());
+                          setCouponError('');
+                        }}
+                        placeholder="Enter coupon code"
+                        className={`flex-1 px-4 py-2.5 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent font-medium transition-all ${
+                          couponError ? 'border-red-300 focus:ring-red-500/50 animate-shake' : 'border-slate-200 focus:ring-indigo-500/50'
+                        }`}
+                      />
+                      <button
+                        onClick={() => {
+                          const upperCode = couponCode.toUpperCase();
+                          if (COUPONS[upperCode]) {
+                            setAppliedCoupon(upperCode);
+                            setCouponError('');
+                            toast.success(`Coupon ${upperCode} applied!`);
+                          } else {
+                            setCouponError('Invalid coupon code');
+                          }
+                        }}
+                        className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    {couponError && <p className="text-xs text-red-600 mt-2 font-semibold">{couponError}</p>}
+                  </div>
+
+                  {appliedCoupon && (
+                    <div className="mb-8 p-4 rounded-2xl bg-green-50 border border-green-200 flex items-center justify-between">
+                      <p className="text-sm font-bold text-green-700">✅ {appliedCoupon} applied — You save {formatCurrency(couponDiscount)}</p>
+                      <button
+                        onClick={() => {
+                          setAppliedCoupon(null);
+                          setCouponCode('');
+                        }}
+                        className="text-green-600 hover:text-green-700 font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
 
                   <div className="space-y-3 mb-8">
                     <label 
@@ -428,6 +555,12 @@ const Checkout = () => {
                     <span>Convenience Fee</span>
                     <span className="text-slate-900">{formatCurrency(CONVENIENCE_FEE)}</span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-green-600 font-bold">
+                      <span>Coupon Discount</span>
+                      <span>-{formatCurrency(couponDiscount)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="my-5 border-t border-dashed border-gray-200" />

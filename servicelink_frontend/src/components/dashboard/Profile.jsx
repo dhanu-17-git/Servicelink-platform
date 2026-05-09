@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { API_BASE, authHeaders } from '../../api/config';
 import Skeleton from '../Skeleton';
+import AddressManager from '../AddressManager';
 
 const Field = ({ label, icon: Icon, className = '', ...props }) => (
   <div className={className}>
@@ -176,6 +177,14 @@ const Profile = () => {
               <Field label="Pincode" icon={MapPin} value={profile.pincode} onChange={(e) => updateField('pincode', e.target.value)} placeholder="400001" />
               <Field label="Landmark" icon={MapPin} value={profile.landmark} onChange={(e) => updateField('landmark', e.target.value)} placeholder="Near metro station" className="md:col-span-2" />
             </div>
+          </section>
+
+          <section>
+            <div className="mb-5">
+              <h2 className="text-xl font-black text-heading">Saved Addresses</h2>
+              <p className="text-sm text-muted mt-1">Manage multiple service addresses for quick booking.</p>
+            </div>
+            <AddressManager />
           </section>
 
           <section>

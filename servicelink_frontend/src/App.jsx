@@ -13,6 +13,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import WorkerDashboard from './pages/WorkerDashboard';
 import WorkerProfile from './pages/WorkerProfile';
+import TrackingPage from './pages/TrackingPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 import { CartProvider } from './context/CartContext';
 import Checkout from './pages/Checkout';
@@ -21,8 +23,9 @@ import Success from './pages/Success';
 const Layout = () => {
   const location = useLocation();
   const { user } = useAuth();
-  const noFooter = Boolean(user?.is_worker) || ['/login', '/register', '/dashboard', '/worker-dashboard'].some(p => location.pathname.startsWith(p));
-  const noNav = false;
+  const standalonePages = ['/track', '/admin'];
+  const noFooter = Boolean(user?.is_worker) || ['/login', '/register', '/dashboard', '/worker-dashboard', ...standalonePages].some(p => location.pathname.startsWith(p));
+  const noNav = standalonePages.some(p => location.pathname.startsWith(p));
 
   return (
     <>
@@ -38,6 +41,8 @@ const Layout = () => {
         <Route path="/services" element={<ProtectedRoute allowedRole="user"><Services /></ProtectedRoute>} />
         <Route path="/workers/:id" element={<ProtectedRoute><WorkerProfile /></ProtectedRoute>} />
         <Route path="/tools" element={<ProtectedRoute allowedRole="user"><Tools /></ProtectedRoute>} />
+        <Route path="/track/:bookingId" element={<TrackingPage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/dashboard/*" element={<ProtectedRoute allowedRole="user"><Dashboard /></ProtectedRoute>} />
         <Route path="/worker-dashboard/*" element={<ProtectedRoute allowedRole="worker"><WorkerDashboard /></ProtectedRoute>} />
       </Routes>

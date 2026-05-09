@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { SlidersHorizontal, X, Loader2, AlertCircle } from 'lucide-react';
+import { SlidersHorizontal, X, Loader2, AlertCircle, Heart } from 'lucide-react';
 import WorkerCard from '../components/WorkerCard';
 import Reveal from '../components/Reveal';
 import { CardSkeleton } from '../components/Skeleton';
 import { locations } from '../data/dummyData';
 import { API_BASE } from '../api/config';
+import { useFavourites } from '../context/FavouritesContext';
 
 // Hierarchical mapping of services
 const serviceHierarchy = {
@@ -20,6 +21,7 @@ const Services = () => {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { favourites } = useFavourites();
   
   // Filters
   const [location, setLocation] = useState('All Locations');
@@ -27,6 +29,7 @@ const Services = () => {
   const [subCategory, setSubCategory] = useState('All Types');
   const [priceRange, setPriceRange] = useState(1000);
   const [showFilters, setShowFilters] = useState(false);
+  const [showFavouritesOnly, setShowFavouritesOnly] = useState(false);
 
   useEffect(() => {
     const fetchWorkers = async () => {
@@ -68,6 +71,9 @@ const Services = () => {
 
   const filtered = useMemo(() => {
     return workers.filter((w) => {
+      // Favourites Filter
+      if (showFavouritesOnly && !favourites.includes(w.id)) return false;
+
       // Location Filter
       if (location !== 'All Locations' && w.location !== location) return false;
       
@@ -91,13 +97,27 @@ const Services = () => {
 
       return true;
     });
-  }, [workers, location, mainCategory, subCategory, priceRange]);
+  }, [workers, location, mainCategory, subCategory, priceRange, showFavouritesOnly, favourites]);
 
   const FilterPanel = () => {
     const availableSubCategories = mainCategory !== 'All Categories' ? serviceHierarchy[mainCategory] : [];
 
     return (
       <div className="space-y-6">
+        <div>
+          <button 
+            onClick={() => setShowFavouritesOnly(!showFavouritesOnly)}
+            className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+              showFavouritesOnly 
+                ? 'bg-red-50 text-red-600 border border-red-200' 
+                : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${showFavouritesOnly ? 'fill-red-600' : ''}`} />
+            Show Favourites Only ({favourites.length})
+          </button>
+        </div>
+
         <div>
           <label className="block text-sm font-semibold text-heading mb-2">Location</label>
           <select value={location} onChange={(e) => setLocation(e.target.value)}
@@ -137,7 +157,7 @@ const Services = () => {
           </div>
         </div>
         
-        <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); }}
+        <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); setShowFavouritesOnly(false); }}
           className="w-full px-4 py-2 text-sm font-medium text-muted border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
           Reset Filters
         </button>
@@ -229,7 +249,7 @@ const Services = () => {
                 </div>
                 <h3 className="text-lg font-bold text-heading">No workers found</h3>
                 <p className="text-muted mt-2">Try adjusting your category or price filters.</p>
-                <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); }} 
+                <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); setShowFavouritesOnly(false); }} 
                         className="mt-6 px-5 py-2.5 bg-gray-900 text-white font-bold rounded-xl text-sm">
                   Clear Filters
                 </button>

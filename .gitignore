@@ -1,6 +1,12 @@
 # Project Specific
 Agentic-Dev-Framework-/
 
+# Documentation (local only)
+Document/
+ER_DIAGRAM.md
+SCHEMA_RELATIONS.md
+dbms report template.docx
+
 # Environment variables
 .env
 .env.local

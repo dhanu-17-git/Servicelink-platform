@@ -9,6 +9,15 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border-color: #f1f5f9;
+  --card-bg: #ffffff;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: #f9fafb;
@@ -17,9 +26,36 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --card-bg: #1e293b;
+}
+
+.dark body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 /* Custom scrollbar */
@@ -336,4 +372,47 @@ html {
   box-shadow:
     0 30px 40px -10px rgba(0, 0, 0, 0.2),
     0 15px 20px -15px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark mode utility overrides */
+.dark .bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+.dark .text-heading {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-muted {
+  color: var(--text-secondary) !important;
+}
+
+.dark .border-gray-100 {
+  border-color: var(--border-color) !important;
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-50\/50 {
+  background-color: #1e293b !important;
+}
+
+.dark .shadow-card {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Shake animation for invalid coupon */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-8px);
+  }
+  75% {
+    transform: translateX(8px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
 }

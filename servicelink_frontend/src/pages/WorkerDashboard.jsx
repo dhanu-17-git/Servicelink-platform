@@ -12,6 +12,7 @@ import WorkerInsights from './worker/WorkerInsights';
 import WorkerPartnerHub from './worker/WorkerPartnerHub';
 import WorkerReviews from './worker/WorkerReviews';
 import WorkerJobHistory from './worker/WorkerJobHistory';
+import ChatDrawer from '../components/ChatDrawer';
 
 const TABS = [
   { key: 'jobs', label: 'Jobs', icon: Briefcase },
@@ -26,7 +27,8 @@ const stageConfig = [
   { key: 'pending', label: 'Accept' },
   { key: 'confirmed', label: 'Navigate' },
   { key: 'navigating', label: 'Arrived' },
-  { key: 'arrived', label: 'Completed' },
+  { key: 'arrived', label: 'Work' },
+  { key: 'working', label: 'Complete' },
   { key: 'completed', label: 'Done' },
 ];
 
@@ -34,7 +36,8 @@ const statusStyles = {
   pending: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   confirmed: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
   navigating: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
-  arrived: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200',
+  arrived: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200',
+  working: 'bg-fuchsia-50 text-fuchsia-700 ring-1 ring-fuchsia-200',
   completed: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
   cancelled: 'bg-red-50 text-red-700 ring-1 ring-red-200',
 };
@@ -48,11 +51,11 @@ const getMapsUrl = (addr) => `https://www.google.com/maps/search/?api=1&query=${
 const Timeline = ({ stage }) => {
   const idx = getStageIndex(stage);
   return (
-    <div className="grid grid-cols-4 gap-2">
-      {stageConfig.slice(0, 4).map((item, i) => (
+    <div className="grid grid-cols-5 gap-2">
+      {stageConfig.slice(0, 5).map((item, i) => (
         <div key={item.key}>
           <div className={`h-2 rounded-full ${idx >= i ? 'bg-gradient-to-r from-emerald-400 to-cyan-400' : 'bg-slate-200'}`} />
-          <p className={`mt-1.5 text-xs font-semibold ${idx >= i ? 'text-slate-800' : 'text-slate-400'}`}>{item.label}</p>
+          <p className={`mt-1.5 text-[10px] sm:text-xs font-semibold truncate ${idx >= i ? 'text-slate-800' : 'text-slate-400'}`}>{item.label}</p>
         </div>
       ))}
     </div>
@@ -71,10 +74,10 @@ const WorkerDashboard = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [activeTab, setActiveTab] = useState('jobs');
   const [showSupport, setShowSupport] = useState(false);
+  const [chatBooking, setChatBooking] = useState(null);
 
   // Use actual worker name from auth
-  let workerName = user?.name || user?.worker?.name || 'Rajesh Kumar';
-  if (workerName === 'Amit Sharma' || workerName === 'Partner') workerName = 'Rajesh Kumar';
+  const workerName = user?.name || user?.worker?.name || 'Worker';
 
   const ownWorkerId = user?.worker_id || user?.worker?.id || bookings.find(b => b.worker?.id)?.worker?.id || user?.id;
 
@@ -120,6 +123,9 @@ const WorkerDashboard = () => {
         updateLocal(booking.id, { localStage: 'arrived' });
         toast.success('Marked arrived.');
       } else if (stage === 'arrived') {
+        updateLocal(booking.id, { localStage: 'working' });
+        toast.success('Started work.');
+      } else if (stage === 'working') {
         await patchStatus(booking.id, 'completed');
         updateLocal(booking.id, { status: 'completed', localStage: 'completed' });
         toast.success('Job completed!');
@@ -157,7 +163,7 @@ const WorkerDashboard = () => {
   const stats = [
     { title: "Today's Jobs", value: bookings.filter(b => b.status !== 'cancelled').length, color: 'bg-slate-900 text-white' },
     { title: 'To Accept', value: bookings.filter(b => getStage(b) === 'pending').length, color: 'bg-amber-50 text-amber-600' },
-    { title: 'Active', value: bookings.filter(b => ['confirmed', 'navigating', 'arrived'].includes(getStage(b))).length, color: 'bg-blue-50 text-blue-600' },
+    { title: 'Active', value: bookings.filter(b => ['confirmed', 'navigating', 'arrived', 'working'].includes(getStage(b))).length, color: 'bg-blue-50 text-blue-600' },
     { title: 'Done', value: bookings.filter(b => b.status === 'completed').length, color: 'bg-emerald-50 text-emerald-600' },
   ];
 
@@ -171,7 +177,16 @@ const WorkerDashboard = () => {
     </div>
   );
 
-  const getActionLabel = (stage) => stage === 'pending' ? 'Accept' : stage === 'confirmed' ? 'Navigate' : stage === 'navigating' ? 'Arrived' : stage === 'arrived' ? 'Complete' : 'Done';
+  const getActionLabel = (stage) => {
+    switch (stage) {
+      case 'pending': return 'Accept Job';
+      case 'confirmed': return 'Start Navigation';
+      case 'navigating': return 'Mark Arrived';
+      case 'arrived': return 'Start Work';
+      case 'working': return 'Mark as Completed';
+      default: return 'Done';
+    }
+  };
 
   const renderJobs = () => (
     <>
@@ -217,19 +232,23 @@ const WorkerDashboard = () => {
                   </div>
                   <div className="mt-4"><Timeline stage={stage} /></div>
                   {stage !== 'cancelled' && (
-                    <div className="flex gap-3 mt-5">
-                      <button onClick={e => { e.stopPropagation(); callCustomer(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-sm font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                        <Phone className="w-4 h-4" />Call
+                    <div className="flex gap-2 mt-5">
+                      <button onClick={e => { e.stopPropagation(); callCustomer(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-xs font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5" />Call
                       </button>
-                      <button onClick={e => { e.stopPropagation(); navigateToClient(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-sm font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                        <Navigation className="w-4 h-4" />Maps
+                      <button onClick={e => { e.stopPropagation(); setChatBooking(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-xs font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5">
+                        Chat
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); navigateToClient(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-xs font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5">
+                        <Navigation className="w-3.5 h-3.5" />Maps
                       </button>
                     </div>
                   )}
                   <div className="flex gap-3 mt-3">
                     {stage !== 'completed' && stage !== 'cancelled' && (
                       <button onClick={e => { e.stopPropagation(); handleStage(booking); }} disabled={isUpdating} className="flex-1 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Route className="w-4 h-4" />}{getActionLabel(stage)}
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : (stage === 'working' ? <CheckCircle2 className="w-4 h-4" /> : <Route className="w-4 h-4" />)}
+                        {getActionLabel(stage)}
                       </button>
                     )}
                     {stage === 'pending' && (
@@ -237,9 +256,9 @@ const WorkerDashboard = () => {
                         <XCircle className="w-4 h-4" />Reject
                       </button>
                     )}
-                    {stage === 'cancelled' && (
+                    {(stage === 'cancelled' || stage === 'completed') && (
                       <button onClick={e => { e.stopPropagation(); removeBooking(booking.id); }} className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
-                        <X className="w-4 h-4" />Remove Order
+                        <X className="w-4 h-4" />{stage === 'completed' ? 'Clear Job' : 'Remove Order'}
                       </button>
                     )}
                   </div>
@@ -334,21 +353,22 @@ const WorkerDashboard = () => {
                 <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Address</p>
                 <p className="text-base font-bold text-slate-900 mt-1">{selectedJob.address || 'Pending'}</p>
               </div>
-              {getStage(selectedJob) !== 'cancelled' && (
-                <div className="grid grid-cols-2 gap-3">
+              {getStage(selectedJob) !== 'cancelled' && getStage(selectedJob) !== 'completed' && (
+                <div className="grid grid-cols-3 gap-3">
                   <button onClick={() => callCustomer(selectedJob)} className="py-3 rounded-xl bg-white border border-gray-200 text-sm font-bold text-slate-900 flex items-center justify-center gap-2 hover:bg-gray-50"><Phone className="w-4 h-4" />Call</button>
-                  <button onClick={() => navigateToClient(selectedJob)} className="py-3 rounded-xl bg-white border border-gray-200 text-sm font-bold text-slate-900 flex items-center justify-center gap-2 hover:bg-gray-50"><Navigation className="w-4 h-4" />Navigate</button>
+                  <button onClick={() => { setChatBooking(selectedJob); setSelectedJob(null); }} className="py-3 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-800">Chat</button>
+                  <button onClick={() => navigateToClient(selectedJob)} className="py-3 rounded-xl bg-white border border-gray-200 text-sm font-bold text-slate-900 flex items-center justify-center gap-2 hover:bg-gray-50"><Navigation className="w-4 h-4" />Nav</button>
                 </div>
               )}
-              {getStage(selectedJob) === 'cancelled' && (
+              {(getStage(selectedJob) === 'cancelled' || getStage(selectedJob) === 'completed') && (
                 <button onClick={() => removeBooking(selectedJob.id)} className="w-full py-4 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
-                  <X className="w-5 h-5" />Remove Order
+                  <X className="w-5 h-5" />{getStage(selectedJob) === 'completed' ? 'Clear Job' : 'Remove Order'}
                 </button>
               )}
               {getStage(selectedJob) !== 'completed' && getStage(selectedJob) !== 'cancelled' && (
                 <button onClick={() => handleStage(selectedJob)} disabled={updatingId === selectedJob.id} className="w-full py-4 rounded-xl bg-emerald-500 text-slate-900 text-sm font-black hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2">
-                  {updatingId === selectedJob.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Route className="w-5 h-5" />}
-                  {getActionLabel(getStage(selectedJob))} Job
+                  {updatingId === selectedJob.id ? <Loader2 className="w-5 h-5 animate-spin" /> : (getStage(selectedJob) === 'working' ? <CheckCircle2 className="w-5 h-5" /> : <Route className="w-5 h-5" />)}
+                  {getActionLabel(getStage(selectedJob))}
                 </button>
               )}
             </div>
@@ -372,6 +392,9 @@ const WorkerDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Chat Drawer */}
+      <ChatDrawer isOpen={!!chatBooking} onClose={() => setChatBooking(null)} booking={chatBooking || {}} />
     </div>
   );
 };
