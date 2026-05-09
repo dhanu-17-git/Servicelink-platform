@@ -142,7 +142,7 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      for (const item of bookingItems) {
+      const bookings = bookingItems.map(item => {
         const bookingPayload = {
           date: formData.startDate,
           time: '09:00',
@@ -155,17 +155,22 @@ const Checkout = () => {
         } else {
           bookingPayload.tool_id = item.id;
         }
+        return bookingPayload;
+      });
 
-        const res = await fetch(`${API_BASE}/bookings/`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(bookingPayload),
-        });
+      const res = await fetch(`${API_BASE}/bookings/bulk/`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ bookings }),
+      });
 
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.detail || 'Booking failed');
-        }
+      if (!res.ok) {
+        const errData = await res.json();
+        const errorMessage = errData.detail ||
+                           (errData.user ? (Array.isArray(errData.user) ? errData.user[0] : errData.user) : null) ||
+                           (errData.bookings ? 'One or more items are unavailable' : null) ||
+                           'Booking failed';
+        throw new Error(errorMessage);
       }
 
       if (!isDirectBooking) {

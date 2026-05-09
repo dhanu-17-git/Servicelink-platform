@@ -9,8 +9,8 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "servicelink",
-        "USER": "root",
-        "PASSWORD": "Dhanu@123",
+        "USER": os.getenv("DATABASE_USER", "root"),
+        "PASSWORD": os.getenv("DATABASE_PASSWORD", "Dhanu@123"),
         "HOST": "localhost",
         "PORT": "3306",
         "OPTIONS": {

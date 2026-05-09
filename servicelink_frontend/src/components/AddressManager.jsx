@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Edit2, MapPin, Home, Briefcase } from 'lucide-react';
+import { Trash2, Edit2 } from 'lucide-react';
 
 const AddressManager = ({ onSelect }) => {
   const [addresses, setAddresses] = useState(() => {

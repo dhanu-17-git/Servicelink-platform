@@ -218,3 +218,38 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
         if not has_open_bookings and not locked_target.availability:
             locked_target.availability = True
             locked_target.save(update_fields=["availability"])
+
+
+class BulkBookingSerializer(serializers.Serializer):
+    bookings = BookingCreateSerializer(many=True)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        user = request.user
+
+        if not user.is_profile_complete:
+            raise serializers.ValidationError(
+                {
+                    "user": (
+                        "Complete your profile with phone, address, city, and pincode "
+                        "before creating a booking."
+                    )
+                }
+            )
+
+        if not attrs.get("bookings"):
+            raise serializers.ValidationError({"bookings": "No bookings provided."})
+
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        bookings_data = validated_data.pop("bookings")
+        created_bookings = []
+        serializer = BookingCreateSerializer(context=self.context)
+
+        for booking_data in bookings_data:
+            booking = serializer.create(booking_data)
+            created_bookings.append(booking)
+
+        return created_bookings

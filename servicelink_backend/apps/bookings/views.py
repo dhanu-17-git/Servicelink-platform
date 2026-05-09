@@ -4,7 +4,12 @@ from rest_framework.response import Response
 
 from .models import Booking
 from .permissions import IsBookingOwner, IsBookingOwnerOrWorker
-from .serializers import BookingCreateSerializer, BookingSerializer, BookingUpdateSerializer
+from .serializers import (
+    BookingCreateSerializer,
+    BookingSerializer,
+    BookingUpdateSerializer,
+    BulkBookingSerializer,
+)
 
 
 class BookingViewSet(
@@ -32,6 +37,20 @@ class BookingViewSet(
         booking = serializer.save()
         return Response(
             BookingSerializer(booking, context=self.get_serializer_context()).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=["post"], url_path="bulk")
+    def bulk_create(self, request, *args, **kwargs):
+        serializer = BulkBookingSerializer(
+            data=request.data, context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        bookings = serializer.save()
+        return Response(
+            BookingSerializer(
+                bookings, many=True, context=self.get_serializer_context()
+            ).data,
             status=status.HTTP_201_CREATED,
         )
 
