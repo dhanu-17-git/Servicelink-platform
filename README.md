@@ -1,5 +1,6 @@
 # ServiceLink - Premium Marketplace Platform 🛠️
 
+[![CI](https://github.com/dhanu-17-git/DBMS-PROJECT/actions/workflows/ci.yml/badge.svg)](https://github.com/dhanu-17-git/DBMS-PROJECT/actions/workflows/ci.yml)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
 [![Django](https://img.shields.io/badge/django-%23092E20.svg?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/)
