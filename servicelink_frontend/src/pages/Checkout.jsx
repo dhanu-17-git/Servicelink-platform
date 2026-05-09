@@ -142,6 +142,7 @@ const Checkout = () => {
 
     setLoading(true);
     try {
+      const idempotencyKey = crypto.randomUUID();
       const bookings = bookingItems.map(item => {
         const bookingPayload = {
           date: formData.startDate,
@@ -160,7 +161,10 @@ const Checkout = () => {
 
       const res = await fetch(`${API_BASE}/bookings/bulk/`, {
         method: 'POST',
-        headers: authHeaders(),
+        headers: {
+          ...authHeaders(),
+          'Idempotency-Key': idempotencyKey,
+        },
         body: JSON.stringify({ bookings }),
       });
 

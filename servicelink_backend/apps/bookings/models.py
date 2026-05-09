@@ -122,3 +122,22 @@ class Review(models.Model):
     def clean(self):
         if self.booking.status != Booking.Status.COMPLETED:
             raise ValidationError("You can only review completed bookings.")
+
+
+class IdempotencyKey(models.Model):
+    user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="idempotency_keys",
+    )
+    idempotency_key = models.UUIDField(db_index=True)
+    request_hash = models.CharField(max_length=64)
+    response_data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "idempotency_key")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.idempotency_key}"
