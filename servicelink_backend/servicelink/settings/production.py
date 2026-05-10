@@ -2,6 +2,9 @@
 
 from .base import *  # noqa: F401, F403
 
+if SECRET_KEY == "django-insecure-local-dev-key-do-not-use-in-production":
+    raise ValueError("You must configure a secure SECRET_KEY in production.")
+
 DEBUG = False
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
 

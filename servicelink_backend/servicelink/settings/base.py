@@ -49,9 +49,7 @@ def database_from_url() -> dict[str, str] | None:
     }
 
 
-SECRET_KEY = os.getenv("SECRET_KEY", os.getenv("DJANGO_SECRET_KEY"))
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable is not set")
+SECRET_KEY = os.getenv("SECRET_KEY", os.getenv("DJANGO_SECRET_KEY", "django-insecure-local-dev-key-do-not-use-in-production"))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
