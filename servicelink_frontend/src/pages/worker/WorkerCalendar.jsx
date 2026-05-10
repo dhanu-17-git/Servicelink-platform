@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, Minus } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -13,7 +13,11 @@ const generateWorkData = (year, month) => {
     const date = new Date(year, month, d);
     if (date > today) continue;
     if (date.getDay() === 0) { data[d] = 'off'; continue; }
-    const rand = Math.random();
+
+    // Seed-like deterministic random based on date
+    const seed = (year * 10000) + (month * 100) + d;
+    const rand = ((Math.sin(seed) * 10000) % 1 + 1) % 1;
+
     if (rand > 0.85) data[d] = 'off';
     else if (rand > 0.15) data[d] = 'worked';
     else data[d] = 'partial';
@@ -36,7 +40,7 @@ const WorkerCalendar = () => {
   const [availableHours, setAvailableHours] = useState({ start: '09:00', end: '18:00' });
   const [offDays, setOffDays] = useState([0]); // Sunday
 
-  const workData = generateWorkData(currentYear, currentMonth);
+  const workData = useMemo(() => generateWorkData(currentYear, currentMonth), [currentYear, currentMonth]);
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 

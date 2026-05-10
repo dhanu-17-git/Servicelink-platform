@@ -218,3 +218,20 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
         if not has_open_bookings and not locked_target.availability:
             locked_target.availability = True
             locked_target.save(update_fields=["availability"])
+
+
+class BulkBookingSerializer(serializers.Serializer):
+    items = BookingCreateSerializer(many=True)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        items_data = validated_data.get("items", [])
+        request = self.context.get("request")
+        bookings = []
+
+        for item_data in items_data:
+            serializer = BookingCreateSerializer(data=item_data, context=self.context)
+            serializer.is_valid(raise_exception=True)
+            bookings.append(serializer.save())
+
+        return bookings
