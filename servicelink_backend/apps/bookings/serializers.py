@@ -247,9 +247,7 @@ class BulkBookingSerializer(serializers.Serializer):
     @transaction.atomic
     def create(self, validated_data):
         items_data = validated_data.pop("items")
-        bookings = []
-        for item_data in items_data:
-            serializer = BulkItemSerializer(data=item_data, context=self.context)
-            serializer.is_valid(raise_exception=True)
-            bookings.append(serializer.save())
-        return bookings
+        # items_data contains already-validated objects (e.g. 'worker' instance)
+        # We pass them directly to the internal create() method.
+        item_serializer = BulkItemSerializer(context=self.context)
+        return [item_serializer.create(item) for item in items_data]
