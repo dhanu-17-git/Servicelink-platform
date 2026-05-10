@@ -142,30 +142,31 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      for (const item of bookingItems) {
-        const bookingPayload = {
+      const idempotencyKey = crypto.randomUUID();
+      const items = bookingItems.map(item => {
+        const payload = {
           date: formData.startDate,
           time: '09:00',
           address: formData.address,
           total_price: Math.max(calculateItemBase(item), MIN_BOOKING_AMOUNT),
         };
+        if (item.type === 'WORKER') payload.worker_id = item.id;
+        else payload.tool_id = item.id;
+        return payload;
+      });
 
-        if (item.type === 'WORKER') {
-          bookingPayload.worker_id = item.id;
-        } else {
-          bookingPayload.tool_id = item.id;
-        }
+      const res = await fetch(`${API_BASE}/bookings/bulk/`, {
+        method: 'POST',
+        headers: {
+          ...authHeaders(),
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify({ items }),
+      });
 
-        const res = await fetch(`${API_BASE}/bookings/`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(bookingPayload),
-        });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.detail || 'Booking failed');
-        }
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Booking failed');
       }
 
       if (!isDirectBooking) {

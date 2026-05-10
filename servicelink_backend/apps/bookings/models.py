@@ -8,12 +8,18 @@ class Booking(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         CONFIRMED = "confirmed", "Confirmed"
+        NAVIGATING = "navigating", "Navigating"
+        ARRIVED = "arrived", "Arrived"
+        WORKING = "working", "Working"
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
 
     STATUS_TRANSITIONS = {
         Status.PENDING: {Status.CONFIRMED, Status.CANCELLED},
-        Status.CONFIRMED: {Status.COMPLETED, Status.CANCELLED},
+        Status.CONFIRMED: {Status.NAVIGATING, Status.CANCELLED},
+        Status.NAVIGATING: {Status.ARRIVED, Status.CANCELLED},
+        Status.ARRIVED: {Status.WORKING, Status.CANCELLED},
+        Status.WORKING: {Status.COMPLETED},
         Status.COMPLETED: set(),
         Status.CANCELLED: set(),
     }
@@ -122,3 +128,21 @@ class Review(models.Model):
     def clean(self):
         if self.booking.status != Booking.Status.COMPLETED:
             raise ValidationError("You can only review completed bookings.")
+
+
+class IdempotencyKey(models.Model):
+    key = models.UUIDField(db_index=True)
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
+    response_status = models.PositiveSmallIntegerField()
+    response_body = models.JSONField()
+    request_hash = models.CharField(max_length=64)  # SHA-256
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "key")
+        indexes = [
+            models.Index(fields=["user", "key"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.key}"

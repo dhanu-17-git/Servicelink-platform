@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, Minus } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -36,7 +36,7 @@ const WorkerCalendar = () => {
   const [availableHours, setAvailableHours] = useState({ start: '09:00', end: '18:00' });
   const [offDays, setOffDays] = useState([0]); // Sunday
 
-  const workData = generateWorkData(currentYear, currentMonth);
+  const workData = useMemo(() => generateWorkData(currentYear, currentMonth), [currentYear, currentMonth]);
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 

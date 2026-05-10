@@ -1,10 +1,17 @@
+import hashlib
+import json
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Booking
+from .models import Booking, IdempotencyKey
 from .permissions import IsBookingOwner, IsBookingOwnerOrWorker
-from .serializers import BookingCreateSerializer, BookingSerializer, BookingUpdateSerializer
+from .serializers import (
+    BookingCreateSerializer, 
+    BookingSerializer, 
+    BookingUpdateSerializer,
+    BulkBookingSerializer
+)
 
 
 class BookingViewSet(
@@ -15,6 +22,24 @@ class BookingViewSet(
     permission_classes = [permissions.IsAuthenticated, IsBookingOwner]
     queryset = Booking.objects.select_related("user", "worker__user", "tool").all()
     http_method_names = ["get", "post", "patch"]
+
+    def _handle_idempotency(self, request):
+        key = request.headers.get("Idempotency-Key")
+        if not key:
+            return None, None
+
+        payload_hash = hashlib.sha256(json.dumps(request.data, sort_keys=True).encode()).hexdigest()
+        
+        try:
+            existing = IdempotencyKey.objects.get(user=request.user, key=key)
+            if existing.request_hash != payload_hash:
+                return Response(
+                    {"detail": "Idempotency-Key reuse with different payload."},
+                    status=status.HTTP_409_CONFLICT
+                ), None
+            return Response(existing.response_body, status=existing.response_status), None
+        except IdempotencyKey.DoesNotExist:
+            return None, (key, payload_hash)
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
@@ -27,13 +52,52 @@ class BookingViewSet(
         return BookingSerializer
 
     def create(self, request, *args, **kwargs):
+        response, idempotency_data = self._handle_idempotency(request)
+        if response:
+            return response
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         booking = serializer.save()
-        return Response(
-            BookingSerializer(booking, context=self.get_serializer_context()).data,
-            status=status.HTTP_201_CREATED,
-        )
+        
+        data = BookingSerializer(booking, context=self.get_serializer_context()).data
+        
+        if idempotency_data:
+            key, payload_hash = idempotency_data
+            IdempotencyKey.objects.create(
+                user=request.user,
+                key=key,
+                request_hash=payload_hash,
+                response_status=status.HTTP_201_CREATED,
+                response_body=data
+            )
+
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="bulk")
+    def bulk_create(self, request, *args, **kwargs):
+        """Atomic bulk booking creation."""
+        response, idempotency_data = self._handle_idempotency(request)
+        if response:
+            return response
+
+        serializer = BulkBookingSerializer(data=request.data, context=self.get_serializer_context())
+        serializer.is_valid(raise_exception=True)
+        bookings = serializer.save()
+        
+        data = BookingSerializer(bookings, many=True, context=self.get_serializer_context()).data
+
+        if idempotency_data:
+            key, payload_hash = idempotency_data
+            IdempotencyKey.objects.create(
+                user=request.user,
+                key=key,
+                request_hash=payload_hash,
+                response_status=status.HTTP_201_CREATED,
+                response_body=data
+            )
+
+        return Response(data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"], url_path="user")
     def user_bookings(self, request, *args, **kwargs):

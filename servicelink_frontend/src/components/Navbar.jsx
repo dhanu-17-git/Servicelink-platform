@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BadgeCheck, Bell, BriefcaseBusiness, LogIn, LogOut, Menu, ShoppingCart, TrendingUp, UserPlus, X, Moon, Sun, Search } from 'lucide-react';
+import { BadgeCheck, Bell, BriefcaseBusiness, LogIn, LogOut, Menu, ShoppingCart, UserPlus, X, Moon, Sun, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';

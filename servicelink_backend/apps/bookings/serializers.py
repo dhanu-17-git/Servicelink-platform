@@ -163,6 +163,21 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
                         )
                     }
                 )
+            
+            # Role-based validation
+            user = self.context["request"].user
+            is_owner = instance.user == user
+            is_worker = instance.worker and instance.worker.user == user
+
+            if new_status == Booking.Status.CONFIRMED and not is_worker:
+                raise serializers.ValidationError({"status": "Only workers can confirm a booking."})
+            
+            if new_status == Booking.Status.COMPLETED and not is_worker:
+                raise serializers.ValidationError({"status": "Only workers can mark a booking as completed."})
+            
+            if new_status == Booking.Status.CANCELLED:
+                if is_owner and instance.status == Booking.Status.CONFIRMED:
+                    raise serializers.ValidationError({"status": "Cannot cancel a booking that has already been confirmed by the worker. Please contact support."})
 
         if any(field in attrs for field in mutable_fields) and instance.status != Booking.Status.PENDING:
             raise serializers.ValidationError(
@@ -218,3 +233,23 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
         if not has_open_bookings and not locked_target.availability:
             locked_target.availability = True
             locked_target.save(update_fields=["availability"])
+
+
+class BulkItemSerializer(BookingCreateSerializer):
+    """Used for individual items within a bulk booking."""
+    class Meta(BookingCreateSerializer.Meta):
+        pass
+
+
+class BulkBookingSerializer(serializers.Serializer):
+    items = BulkItemSerializer(many=True)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        bookings = []
+        for item_data in items_data:
+            serializer = BulkItemSerializer(data=item_data, context=self.context)
+            serializer.is_valid(raise_exception=True)
+            bookings.append(serializer.save())
+        return bookings
