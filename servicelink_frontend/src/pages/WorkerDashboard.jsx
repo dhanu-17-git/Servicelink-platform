@@ -112,22 +112,25 @@ const WorkerDashboard = () => {
     try {
       if (stage === 'pending') {
         await patchStatus(booking.id, 'confirmed');
-        updateLocal(booking.id, { status: 'confirmed', localStage: 'confirmed' });
+        updateLocal(booking.id, { status: 'confirmed' });
         addNotification({ type: 'worker', title: 'Job Accepted', message: `You accepted job #${booking.id} from ${getCustomerName(booking)}.` });
         toast.success('Job accepted.');
       } else if (stage === 'confirmed') {
+        await patchStatus(booking.id, 'navigating');
         window.open(getMapsUrl(booking.address), '_blank', 'noopener,noreferrer');
-        updateLocal(booking.id, { localStage: 'navigating' });
+        updateLocal(booking.id, { status: 'navigating' });
         toast.success('Navigation started.');
       } else if (stage === 'navigating') {
-        updateLocal(booking.id, { localStage: 'arrived' });
+        await patchStatus(booking.id, 'arrived');
+        updateLocal(booking.id, { status: 'arrived' });
         toast.success('Marked arrived.');
       } else if (stage === 'arrived') {
-        updateLocal(booking.id, { localStage: 'working' });
+        await patchStatus(booking.id, 'working');
+        updateLocal(booking.id, { status: 'working' });
         toast.success('Started work.');
       } else if (stage === 'working') {
         await patchStatus(booking.id, 'completed');
-        updateLocal(booking.id, { status: 'completed', localStage: 'completed' });
+        updateLocal(booking.id, { status: 'completed' });
         toast.success('Job completed!');
       }
     } catch (err) { toast.info(err.message); }

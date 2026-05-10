@@ -143,20 +143,16 @@ const Checkout = () => {
     setLoading(true);
     try {
       const idempotencyKey = crypto.randomUUID();
-      const bookings = bookingItems.map(item => {
-        const bookingPayload = {
+      const items = bookingItems.map(item => {
+        const payload = {
           date: formData.startDate,
           time: '09:00',
           address: formData.address,
           total_price: Math.max(calculateItemBase(item), MIN_BOOKING_AMOUNT),
         };
-
-        if (item.type === 'WORKER') {
-          bookingPayload.worker_id = item.id;
-        } else {
-          bookingPayload.tool_id = item.id;
-        }
-        return bookingPayload;
+        if (item.type === 'WORKER') payload.worker_id = item.id;
+        else payload.tool_id = item.id;
+        return payload;
       });
 
       const res = await fetch(`${API_BASE}/bookings/bulk/`, {
@@ -165,14 +161,14 @@ const Checkout = () => {
           ...authHeaders(),
           'Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({ bookings }),
+        body: JSON.stringify({ items }),
       });
 
       if (!res.ok) {
         const errData = await res.json();
         const errorMessage = errData.detail ||
                            (errData.user ? (Array.isArray(errData.user) ? errData.user[0] : errData.user) : null) ||
-                           (errData.bookings ? 'One or more items are unavailable' : null) ||
+                           (errData.items ? 'One or more items are unavailable' : null) ||
                            'Booking failed';
         throw new Error(errorMessage);
       }

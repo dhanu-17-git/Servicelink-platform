@@ -8,12 +8,18 @@ class Booking(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         CONFIRMED = "confirmed", "Confirmed"
+        NAVIGATING = "navigating", "Navigating"
+        ARRIVED = "arrived", "Arrived"
+        WORKING = "working", "Working"
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
 
     STATUS_TRANSITIONS = {
         Status.PENDING: {Status.CONFIRMED, Status.CANCELLED},
-        Status.CONFIRMED: {Status.COMPLETED, Status.CANCELLED},
+        Status.CONFIRMED: {Status.NAVIGATING, Status.CANCELLED},
+        Status.NAVIGATING: {Status.ARRIVED, Status.CANCELLED},
+        Status.ARRIVED: {Status.WORKING, Status.CANCELLED},
+        Status.WORKING: {Status.COMPLETED},
         Status.COMPLETED: set(),
         Status.CANCELLED: set(),
     }

@@ -10,9 +10,9 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "servicelink",
         "USER": os.getenv("DATABASE_USER", "root"),
-        "PASSWORD": os.getenv("DATABASE_PASSWORD", "Dhanu@123"),
-        "HOST": "localhost",
-        "PORT": "3306",
+        "PASSWORD": os.getenv("DATABASE_PASSWORD", ""),
+        "HOST": os.getenv("DATABASE_HOST", "localhost"),
+        "PORT": os.getenv("DATABASE_PORT", "3306"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'"
         }
