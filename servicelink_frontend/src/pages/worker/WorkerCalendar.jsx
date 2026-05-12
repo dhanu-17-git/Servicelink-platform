@@ -13,7 +13,8 @@ const generateWorkData = (year, month) => {
     const date = new Date(year, month, d);
     if (date > today) continue;
     if (date.getDay() === 0) { data[d] = 'off'; continue; }
-    const rand = Math.random();
+    const seed = (year * 10000) + (month * 100) + d;
+    const rand = ((Math.sin(seed) * 10000) % 1 + 1) % 1;
     if (rand > 0.85) data[d] = 'off';
     else if (rand > 0.15) data[d] = 'worked';
     else data[d] = 'partial';
