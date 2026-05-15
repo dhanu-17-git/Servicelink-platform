@@ -39,12 +39,9 @@ const Navbar = () => {
   }, []);
 
   const customerLinks = [
-    ...(!user ? [{ name: 'Home', path: '/' }] : []),
-    ...(user ? [
-      { name: 'Services', path: '/services' },
-      { name: 'Tools', path: '/tools' },
-      { name: 'Dashboard', path: '/dashboard' },
-    ] : []),
+    { name: 'Services', path: '/services' },
+    { name: 'Tools', path: '/tools' },
+    ...(user ? [{ name: 'Dashboard', path: '/dashboard' }] : []),
   ];
 
   const partnerLinks = [
@@ -120,8 +117,8 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-2">
-            {/* Search Button */}
-            {!isPartner && (
+            {/* Search Button — only on inner pages */}
+            {!isPartner && user && !['/', '/login', '/register'].includes(location.pathname) && (
               <button 
                 onClick={() => setShowSearch(true)} 
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/10 text-sm text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"

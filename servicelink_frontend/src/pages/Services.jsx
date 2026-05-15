@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { SlidersHorizontal, X, Loader2, AlertCircle, Heart } from 'lucide-react';
+import { SlidersHorizontal, X, AlertCircle, Heart, Loader2, MapPin } from 'lucide-react';
 import WorkerCard from '../components/WorkerCard';
 import Reveal from '../components/Reveal';
 import { CardSkeleton } from '../components/Skeleton';
 import { locations } from '../data/dummyData';
 import { API_BASE } from '../api/config';
 import { useFavourites } from '../context/FavouritesContext';
+import { useToast } from '../context/ToastContext';
 
 // Hierarchical mapping of services
 const serviceHierarchy = {
@@ -25,11 +26,66 @@ const Services = () => {
   
   // Filters
   const [location, setLocation] = useState('All Locations');
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [detectedLocation, setDetectedLocation] = useState(() => localStorage.getItem('sl_detected_location') || '');
   const [mainCategory, setMainCategory] = useState('All Categories');
   const [subCategory, setSubCategory] = useState('All Types');
   const [priceRange, setPriceRange] = useState(1000);
   const [showFilters, setShowFilters] = useState(false);
   const [showFavouritesOnly, setShowFavouritesOnly] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    const savedLocation = localStorage.getItem('sl_detected_location');
+    if (savedLocation && locations.includes(savedLocation)) {
+      setLocation(savedLocation);
+      setDetectedLocation(savedLocation);
+    }
+  }, []);
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.info('Location detection is not supported in this browser');
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`, {
+            headers: { 'User-Agent': 'ServiceLink/1.0' },
+          });
+          if (!res.ok) throw new Error('Location lookup failed');
+          const data = await res.json();
+          const addressParts = Object.values(data.address || {}).map(value => String(value).toLowerCase());
+          const matched = locations.find((item) => (
+            item !== 'All Locations' && addressParts.some(part => part.includes(item.toLowerCase()) || item.toLowerCase().includes(part))
+          ));
+
+          if (matched) {
+            setLocation(matched);
+            setDetectedLocation(matched);
+            localStorage.setItem('sl_detected_location', matched);
+            toast.success(`Detected: ${matched}`);
+          } else {
+            setDetectedLocation('');
+            localStorage.removeItem('sl_detected_location');
+            toast.info('Location not in service area');
+          }
+        } catch (err) {
+          toast.info('Could not detect your location');
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      () => {
+        setDetectingLocation(false);
+        toast.info('Location permission was not granted');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   useEffect(() => {
     const fetchWorkers = async () => {
@@ -72,7 +128,7 @@ const Services = () => {
   const filtered = useMemo(() => {
     return workers.filter((w) => {
       // Favourites Filter
-      if (showFavouritesOnly && !favourites.includes(w.id)) return false;
+      if (showFavouritesOnly && !favourites.includes(String(w.id))) return false;
 
       // Location Filter
       if (location !== 'All Locations' && w.location !== location) return false;
@@ -120,6 +176,21 @@ const Services = () => {
 
         <div>
           <label className="block text-sm font-semibold text-heading mb-2">Location</label>
+          <button
+            type="button"
+            onClick={detectLocation}
+            disabled={detectingLocation}
+            className="mb-2 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-white text-heading border border-gray-200 hover:bg-gray-50 disabled:opacity-70"
+          >
+            {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4 text-[#D2691E]" />}
+            {detectingLocation ? 'Detecting...' : 'Use My Location'}
+          </button>
+          {detectedLocation && (
+            <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold">
+              <MapPin className="w-3.5 h-3.5" />
+              Detected: {detectedLocation}
+            </div>
+          )}
           <select value={location} onChange={(e) => setLocation(e.target.value)}
             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D2691E]/50 focus:border-transparent">
             {locations.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -157,7 +228,7 @@ const Services = () => {
           </div>
         </div>
         
-        <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); setShowFavouritesOnly(false); }}
+        <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); setShowFavouritesOnly(false); setDetectedLocation(''); localStorage.removeItem('sl_detected_location'); }}
           className="w-full px-4 py-2 text-sm font-medium text-muted border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
           Reset Filters
         </button>
@@ -249,7 +320,7 @@ const Services = () => {
                 </div>
                 <h3 className="text-lg font-bold text-heading">No workers found</h3>
                 <p className="text-muted mt-2">Try adjusting your category or price filters.</p>
-                <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); setShowFavouritesOnly(false); }} 
+                <button onClick={() => { setLocation('All Locations'); setMainCategory('All Categories'); setSubCategory('All Types'); setPriceRange(1000); setShowFavouritesOnly(false); setDetectedLocation(''); localStorage.removeItem('sl_detected_location'); }} 
                         className="mt-6 px-5 py-2.5 bg-gray-900 text-white font-bold rounded-xl text-sm">
                   Clear Filters
                 </button>

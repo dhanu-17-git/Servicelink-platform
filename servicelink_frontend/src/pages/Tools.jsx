@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
-import { SlidersHorizontal, X, Search, Loader2, AlertCircle } from 'lucide-react';
+import { SlidersHorizontal, X, Search, Loader2, AlertCircle, MapPin } from 'lucide-react';
 import ToolCard from '../components/ToolCard';
 import Reveal from '../components/Reveal';
 import { CardSkeleton } from '../components/Skeleton';
 import { locations } from '../data/dummyData';
 import { API_BASE } from '../api/config';
+import { useToast } from '../context/ToastContext';
 
-const FilterPanel = ({ search, setSearch, location, setLocation, category, setCategory, priceRange, setPriceRange, toolCategories }) => (
+const FilterPanel = ({ search, setSearch, location, setLocation, category, setCategory, priceRange, setPriceRange, toolCategories, detectingLocation, detectedLocation, onDetectLocation, onReset }) => (
   <div className="space-y-6">
     <div>
       <label className="block text-sm font-semibold text-heading mb-2">Search</label>
@@ -18,6 +19,21 @@ const FilterPanel = ({ search, setSearch, location, setLocation, category, setCa
     </div>
     <div>
       <label className="block text-sm font-semibold text-heading mb-2">Location</label>
+      <button
+        type="button"
+        onClick={onDetectLocation}
+        disabled={detectingLocation}
+        className="mb-2 w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-white text-heading border border-gray-200 hover:bg-gray-50 disabled:opacity-70"
+      >
+        {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4 text-[#006060]" />}
+        {detectingLocation ? 'Detecting...' : 'Use My Location'}
+      </button>
+      {detectedLocation && (
+        <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold">
+          <MapPin className="w-3.5 h-3.5" />
+          Detected: {detectedLocation}
+        </div>
+      )}
       <select value={location} onChange={(e) => setLocation(e.target.value)}
         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7FFFD4]/50 focus:border-transparent">
         {locations.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -40,7 +56,7 @@ const FilterPanel = ({ search, setSearch, location, setLocation, category, setCa
         <span>₹20</span><span>₹10,000</span>
       </div>
     </div>
-    <button onClick={() => { setLocation('All Locations'); setCategory('All'); setPriceRange(10000); setSearch(''); }}
+    <button onClick={onReset}
       className="w-full px-4 py-2 text-sm font-medium text-muted border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
       Reset Filters
     </button>
@@ -53,9 +69,73 @@ const Tools = () => {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [location, setLocation] = useState('All Locations');
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [detectedLocation, setDetectedLocation] = useState(() => localStorage.getItem('sl_detected_location') || '');
   const [category, setCategory] = useState('All');
   const [priceRange, setPriceRange] = useState(10000);
   const [showFilters, setShowFilters] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    const savedLocation = localStorage.getItem('sl_detected_location');
+    if (savedLocation && locations.includes(savedLocation)) {
+      setLocation(savedLocation);
+      setDetectedLocation(savedLocation);
+    }
+  }, []);
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.info('Location detection is not supported in this browser');
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`, {
+            headers: { 'User-Agent': 'ServiceLink/1.0' },
+          });
+          if (!res.ok) throw new Error('Location lookup failed');
+          const data = await res.json();
+          const addressParts = Object.values(data.address || {}).map(value => String(value).toLowerCase());
+          const matched = locations.find((item) => (
+            item !== 'All Locations' && addressParts.some(part => part.includes(item.toLowerCase()) || item.toLowerCase().includes(part))
+          ));
+
+          if (matched) {
+            setLocation(matched);
+            setDetectedLocation(matched);
+            localStorage.setItem('sl_detected_location', matched);
+            toast.success(`Detected: ${matched}`);
+          } else {
+            setDetectedLocation('');
+            localStorage.removeItem('sl_detected_location');
+            toast.info('Location not in service area');
+          }
+        } catch (err) {
+          toast.info('Could not detect your location');
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      () => {
+        setDetectingLocation(false);
+        toast.info('Location permission was not granted');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const resetFilters = () => {
+    setLocation('All Locations');
+    setCategory('All');
+    setPriceRange(10000);
+    setSearch('');
+    setDetectedLocation('');
+    localStorage.removeItem('sl_detected_location');
+  };
 
   useEffect(() => {
     const fetchTools = async () => {
@@ -95,11 +175,12 @@ const Tools = () => {
   const filtered = useMemo(() => {
     return tools.filter((t) => {
       if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (location !== 'All Locations' && t.location && t.location !== location) return false;
       if (category !== 'All' && t.category !== category) return false;
       if (t.pricePerDay > priceRange) return false;
       return true;
     });
-  }, [tools, search, category, priceRange]);
+  }, [tools, search, location, category, priceRange]);
 
   if (loading) return (
     <div className="min-h-screen pt-24 pb-16 px-4 bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.10),_transparent_30%),#fff]">
@@ -149,6 +230,10 @@ const Tools = () => {
                 category={category} setCategory={setCategory}
                 priceRange={priceRange} setPriceRange={setPriceRange}
                 toolCategories={toolCategories}
+                detectingLocation={detectingLocation}
+                detectedLocation={detectedLocation}
+                onDetectLocation={detectLocation}
+                onReset={resetFilters}
               />
             </div>
           </div>
@@ -167,6 +252,10 @@ const Tools = () => {
                   category={category} setCategory={setCategory}
                   priceRange={priceRange} setPriceRange={setPriceRange}
                   toolCategories={toolCategories}
+                  detectingLocation={detectingLocation}
+                  detectedLocation={detectedLocation}
+                  onDetectLocation={detectLocation}
+                  onReset={resetFilters}
                 />
               </div>
             </div>

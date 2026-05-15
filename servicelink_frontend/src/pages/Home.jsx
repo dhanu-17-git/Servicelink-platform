@@ -162,7 +162,7 @@ const Home = () => {
           className="absolute inset-0 w-full h-full object-cover brightness-125 contrast-105 saturate-110"
         />
         {/* Minimal overlay for text readability */}
-        <div className="absolute inset-0 bg-black/15" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.10) 40%, rgba(0,0,0,0.30) 100%)' }} />
 
         <div className="relative max-w-7xl mx-auto z-10 w-full h-full flex flex-col items-center justify-start pt-10">
           <div className="text-center relative">
@@ -186,7 +186,7 @@ const Home = () => {
       </section>
 
       {/* Subtitle below hero image */}
-      <div className="text-center py-6 bg-surface px-4" style={{ minHeight: '100px' }}>
+      <div className="text-center py-3 bg-surface px-4">
         <TypewriterText
           text="Connect with verified professionals and access quality tools for your projects."
           delay={1400}
@@ -419,18 +419,18 @@ const Home = () => {
       {/* CTA */}
       <section className="py-20 px-4">
         <ScrollReveal duration="1s">
-          <div className="max-w-4xl mx-auto text-center bg-gradient-to-br from-emerald-600 via-emerald-500 to-white rounded-3xl p-12 md:p-16 shadow-2xl border border-emerald-100 relative overflow-hidden">
-            {/* Decorative background element */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl" />
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/40 rounded-full blur-3xl" />
+          <div className="max-w-4xl mx-auto text-center rounded-[2.5rem] p-12 md:p-16 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', boxShadow: '0 25px 60px rgba(15,23,42,0.4), 0 0 0 1px rgba(148,163,184,0.1)' }}>
+            {/* Animated glow orbs */}
+            <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full blur-[100px] opacity-30" style={{ background: 'radial-gradient(circle, #f97316, transparent 70%)' }} />
+            <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full blur-[100px] opacity-20" style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }} />
             
-            <h2 className="relative z-10 text-3xl md:text-4xl font-bold text-emerald-950 mb-4">Ready to Get Started?</h2>
-            <p className="relative z-10 text-emerald-900/80 max-w-lg mx-auto mb-8 font-medium">Join thousands of satisfied customers who trust ServiceLink for their service needs.</p>
+            <h2 className="relative z-10 text-3xl md:text-4xl font-black text-white mb-4">Ready to Get Started?</h2>
+            <p className="relative z-10 text-white/50 max-w-lg mx-auto mb-8 font-medium">Join thousands of satisfied customers who trust ServiceLink for their service needs.</p>
             <div className="relative z-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/register" className="px-8 py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-lg hover:-translate-y-0.5 border border-emerald-500/20">
+              <Link to="/register" className="px-8 py-3.5 font-bold text-white rounded-xl transition-all shadow-lg shadow-orange-500/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-500/30" style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>
                 Create Account
               </Link>
-              <Link to="/services" className="px-8 py-3.5 bg-white text-emerald-700 font-bold rounded-xl hover:bg-emerald-50 transition-all border border-emerald-200 shadow-sm">
+              <Link to="/services" className="px-8 py-3.5 text-white/80 font-bold rounded-xl transition-all border border-white/15 backdrop-blur-sm hover:bg-white/10 hover:border-white/25 hover:-translate-y-1">
                 Browse Services
               </Link>
             </div>

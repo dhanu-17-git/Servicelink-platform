@@ -13,9 +13,11 @@ import WorkerPartnerHub from './worker/WorkerPartnerHub';
 import WorkerReviews from './worker/WorkerReviews';
 import WorkerJobHistory from './worker/WorkerJobHistory';
 import ChatDrawer from '../components/ChatDrawer';
+import WorkerProfileEditor from '../components/WorkerProfileEditor';
 
 const TABS = [
   { key: 'jobs', label: 'Jobs', icon: Briefcase },
+  { key: 'profile', label: 'My Profile', icon: UserRound },
   { key: 'hub', label: 'Partner Hub', icon: Sparkles },
   { key: 'insights', label: 'Insights', icon: ShieldCheck },
   { key: 'calendar', label: 'Calendar', icon: Calendar },
@@ -75,6 +77,7 @@ const WorkerDashboard = () => {
   const [activeTab, setActiveTab] = useState('jobs');
   const [showSupport, setShowSupport] = useState(false);
   const [chatBooking, setChatBooking] = useState(null);
+  const [handlingRequestId, setHandlingRequestId] = useState(null);
 
   // Use actual worker name from auth
   const workerName = user?.name || user?.worker?.name || 'Worker';
@@ -89,11 +92,14 @@ const WorkerDashboard = () => {
         if (!res.ok) throw new Error('Failed to load worker bookings');
         const data = await res.json();
         const list = Array.isArray(data) ? data : data.results || [];
-        setBookings(list.map(b => ({ ...b, localStage: b.status })));
+        setBookings(list.map(b => ({ ...b, localStage: b.status, pendingChangeRequest: b.pending_change_request || null })));
       } catch { setError('Failed to load jobs. Please check that the backend server is running.'); }
       finally { setLoading(false); }
     };
     fetchBookings();
+    // Poll every 30s so new change requests show without manual refresh
+    const interval = setInterval(fetchBookings, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const patchStatus = async (id, status) => {
@@ -102,8 +108,12 @@ const WorkerDashboard = () => {
   };
 
   const updateLocal = (id, updates) => {
-    setBookings(cur => cur.map(b => b.id === id ? { ...b, ...updates } : b));
-    setSelectedJob(cur => cur?.id === id ? { ...cur, ...updates } : cur);
+    const finalUpdates = { ...updates };
+    if (updates.status && !updates.localStage) {
+      finalUpdates.localStage = updates.status;
+    }
+    setBookings(cur => cur.map(b => b.id === id ? { ...b, ...finalUpdates } : b));
+    setSelectedJob(cur => cur?.id === id ? { ...cur, ...finalUpdates } : cur);
   };
 
   const handleStage = async (booking) => {
@@ -150,6 +160,26 @@ const WorkerDashboard = () => {
   const removeBooking = (id) => {
     setBookings(cur => cur.filter(b => b.id !== id));
     if (selectedJob?.id === id) setSelectedJob(null);
+  };
+
+  const handleChangeRequest = async (changeRequestId, bookingId, decision, newValue, fieldName) => {
+    setHandlingRequestId(changeRequestId);
+    try {
+      const res = await fetch(`${API_BASE}/bookings/change-requests/${changeRequestId}/handle`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ status: decision }),
+      });
+      if (!res.ok) throw new Error('Failed to update request');
+      if (decision === 'accepted') {
+        updateLocal(bookingId, { [fieldName]: newValue, pendingChangeRequest: null });
+        toast.success('Change accepted. Booking updated.');
+      } else {
+        updateLocal(bookingId, { status: 'cancelled', localStage: 'cancelled', pendingChangeRequest: null });
+        toast.info('Change rejected. Booking auto-cancelled.');
+      }
+    } catch (err) { toast.info(err.message); }
+    finally { setHandlingRequestId(null); }
   };
 
   const callCustomer = (b) => {
@@ -219,51 +249,126 @@ const WorkerDashboard = () => {
               const stage = getStage(booking);
               const isUpdating = updatingId === booking.id;
               return (
-                <article key={booking.id} onClick={() => setSelectedJob(booking)} className="rounded-2xl border border-gray-100 bg-slate-50/50 p-5 hover:bg-white hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-base font-bold text-slate-900">{getCustomerName(booking)}</h3>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold capitalize ${statusStyles[stage] || statusStyles.pending}`}>{stage}</span>
+                <article key={booking.id} onClick={() => setSelectedJob(booking)} className="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group">
+                  {/* Top Color Bar */}
+                  <div className={`h-1.5 w-full bg-gradient-to-r ${
+                    stage === 'pending' ? 'from-amber-400 to-orange-400' :
+                    stage === 'confirmed' ? 'from-blue-400 to-indigo-400' :
+                    stage === 'navigating' ? 'from-indigo-400 to-purple-400' :
+                    stage === 'arrived' ? 'from-purple-400 to-fuchsia-400' :
+                    stage === 'working' ? 'from-fuchsia-400 to-pink-400' :
+                    stage === 'completed' ? 'from-emerald-400 to-green-400' :
+                    'from-slate-400 to-slate-500'
+                  }`} />
+                  
+                  <div className="p-6">
+                    {/* Header Row */}
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order #{booking.id}</span>
+                        <h3 className="text-xl font-black text-slate-900 mt-0.5">{getCustomerName(booking)}</h3>
                       </div>
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5"><MapPin className="w-4 h-4 text-emerald-500" />{booking.address || 'Address pending'}</p>
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${statusStyles[stage] || statusStyles.pending}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                        {stage}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-slate-900">{formatCurrency(booking.total_price)}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">#{booking.id}</p>
+
+                    {/* Info Section */}
+                    <div className="flex flex-col gap-2.5 mb-6">
+                      <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                        <MapPin className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        <span className="truncate">{booking.address || 'Address pending'}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 text-xs font-bold text-slate-600">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {booking.date || 'Pending'}
+                        </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 text-xs font-bold text-slate-600">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          {booking.time || 'Flexible'}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-4"><Timeline stage={stage} /></div>
-                  {stage !== 'cancelled' && (
-                    <div className="flex gap-2 mt-5">
-                      <button onClick={e => { e.stopPropagation(); callCustomer(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-xs font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5" />Call
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); setChatBooking(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-xs font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5">
-                        Chat
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); navigateToClient(booking); }} className="flex-1 py-2.5 rounded-xl bg-white border border-gray-200 text-slate-700 text-xs font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5">
-                        <Navigation className="w-3.5 h-3.5" />Maps
-                      </button>
+
+                    {/* Timeline */}
+                    <div className="mb-6"><Timeline stage={stage} /></div>
+
+                    {/* Pending Change Request Banner */}
+                    {booking.pendingChangeRequest && (
+                      <div className="mb-6 p-4 rounded-xl bg-cyan-50 border border-cyan-100 shadow-sm">
+                        <p className="text-xs font-black text-cyan-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" /> Change Requested
+                        </p>
+                        <p className="text-sm text-slate-700 mb-3 font-medium">
+                          <span className="capitalize">{booking.pendingChangeRequest.field_name}:</span> {booking.pendingChangeRequest.new_value}
+                        </p>
+                        <div className="flex gap-2">
+                          <button onClick={e => { e.stopPropagation(); handleChangeRequest(booking.pendingChangeRequest.id, booking.id, 'accepted', booking.pendingChangeRequest.new_value, booking.pendingChangeRequest.field_name); }} disabled={handlingRequestId === booking.pendingChangeRequest.id} className="flex-1 py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold hover:bg-cyan-700 transition-colors disabled:opacity-60">Accept</button>
+                          <button onClick={e => { e.stopPropagation(); handleChangeRequest(booking.pendingChangeRequest.id, booking.id, 'rejected', null, null); }} disabled={handlingRequestId === booking.pendingChangeRequest.id} className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 border border-slate-200 text-xs font-bold hover:bg-slate-50 transition-colors disabled:opacity-60">Reject</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Footer / Actions */}
+                    <div className="pt-5 border-t border-slate-100">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Earnings</p>
+                        <p className="text-2xl font-black text-slate-900">{formatCurrency(booking.total_price)}</p>
+                      </div>
+
+                      {stage !== 'cancelled' && stage !== 'completed' && (
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <button onClick={e => { e.stopPropagation(); callCustomer(booking); }} className="py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                            <Phone className="w-3.5 h-3.5" /> Call
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); setChatBooking(booking); }} className="py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                            <Briefcase className="w-3.5 h-3.5" /> Chat
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); navigateToClient(booking); }} className="py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors">
+                            <Navigation className="w-3.5 h-3.5" /> Maps
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Primary Action Button */}
+                      <div className="flex gap-2">
+                        {stage !== 'completed' && stage !== 'cancelled' && (
+                          <button 
+                            onClick={e => { e.stopPropagation(); handleStage(booking); }} 
+                            disabled={isUpdating} 
+                            className={`flex-1 py-3.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 ${
+                              stage === 'pending' ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20' :
+                              stage === 'working' ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20' :
+                              'bg-slate-900 hover:bg-slate-800 text-white shadow-md shadow-slate-900/20'
+                            } disabled:opacity-70`}
+                          >
+                            {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                              stage === 'pending' ? <CheckCircle2 className="w-4 h-4" /> :
+                              stage === 'working' ? <Sparkles className="w-4 h-4" /> :
+                              <ArrowRight className="w-4 h-4" />
+                            )}
+                            {getActionLabel(stage)}
+                          </button>
+                        )}
+                        {stage === 'pending' && (
+                          <button 
+                            onClick={e => { e.stopPropagation(); rejectBooking(booking); }} 
+                            disabled={isUpdating} 
+                            className="px-5 rounded-xl bg-red-50 text-red-600 border border-red-100 text-sm font-bold hover:bg-red-100 transition-colors disabled:opacity-60 flex items-center justify-center"
+                            title="Reject Job"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        )}
+                        {(stage === 'cancelled' || stage === 'completed') && (
+                          <button onClick={e => { e.stopPropagation(); removeBooking(booking.id); }} className="w-full py-3.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
+                            <X className="w-4 h-4" /> {stage === 'completed' ? 'Clear Job' : 'Remove Order'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <div className="flex gap-3 mt-3">
-                    {stage !== 'completed' && stage !== 'cancelled' && (
-                      <button onClick={e => { e.stopPropagation(); handleStage(booking); }} disabled={isUpdating} className="flex-1 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : (stage === 'working' ? <CheckCircle2 className="w-4 h-4" /> : <Route className="w-4 h-4" />)}
-                        {getActionLabel(stage)}
-                      </button>
-                    )}
-                    {stage === 'pending' && (
-                      <button onClick={e => { e.stopPropagation(); rejectBooking(booking); }} disabled={isUpdating} className="py-3 px-5 rounded-xl bg-red-50 text-red-600 text-sm font-bold hover:bg-red-100 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                        <XCircle className="w-4 h-4" />Reject
-                      </button>
-                    )}
-                    {(stage === 'cancelled' || stage === 'completed') && (
-                      <button onClick={e => { e.stopPropagation(); removeBooking(booking.id); }} className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
-                        <X className="w-4 h-4" />{stage === 'completed' ? 'Clear Job' : 'Remove Order'}
-                      </button>
-                    )}
                   </div>
                 </article>
               );
@@ -319,6 +424,7 @@ const WorkerDashboard = () => {
 
         {/* Tab Content */}
         {activeTab === 'jobs' && renderJobs()}
+        {activeTab === 'profile' && <WorkerProfileEditor />}
         {activeTab === 'hub' && <WorkerPartnerHub />}
         {activeTab === 'insights' && <WorkerInsights />}
         {activeTab === 'calendar' && <WorkerCalendar />}

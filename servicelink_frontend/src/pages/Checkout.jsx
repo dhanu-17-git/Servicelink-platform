@@ -14,6 +14,12 @@ import amazonpayIcon from '../../images/icons/amazonpay.png';
 
 const MIN_BOOKING_AMOUNT = 500;
 const CONVENIENCE_FEE = 49;
+const TOOL_SECURITY_DEPOSIT = 500;
+const TOOL_DELIVERY_FEE = 50;
+
+const MONTHLY_SKILLS = ['Cook', 'House cleaner', 'Caretaker', 'Babysitter', 'Gardener', 'Dairy worker', 'Security guard', 'Warehouse worker'];
+const HOURLY_SKILLS = ['Driver', 'Delivery worker', 'Computer technician', 'Mobile repair technician', 'AC technician'];
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const COUPONS = {
   'SUMMER50': { discount: 50, type: 'percent', maxDiscount: 200, label: '50% off (max ₹200)' },
@@ -33,6 +39,37 @@ const timeSlots = [
 ];
 
 const formatCurrency = (value) => `₹${Math.round(value).toLocaleString('en-IN')}`;
+
+const getDefaultBookingMode = (item) => {
+  const skill = item?.skill || '';
+  if (MONTHLY_SKILLS.includes(skill)) return 'MONTHLY';
+  if (HOURLY_SKILLS.includes(skill)) return 'HOURLY';
+  return 'DAILY';
+};
+
+const modeLabels = {
+  DAILY: 'Daily Service',
+  MONTHLY: 'Monthly Service',
+  HOURLY: 'Hourly Booking',
+  TOOL: 'Tool Rental',
+};
+
+const extractErrorMessage = (errData) => {
+  const flatten = (value, prefix = '') => {
+    if (!value) return [];
+    if (typeof value === 'string') return [prefix ? `${prefix}: ${value}` : value];
+    if (Array.isArray(value)) return value.flatMap((item, index) => flatten(item, prefix || (value.length > 1 ? `item ${index + 1}` : '')));
+    if (typeof value === 'object') {
+      return Object.entries(value).flatMap(([key, val]) => flatten(val, prefix ? `${prefix}.${key}` : key));
+    }
+    return [String(value)];
+  };
+
+  if (errData?.detail) return Array.isArray(errData.detail) ? errData.detail[0] : errData.detail;
+  if (errData?.items?.[0]) return flatten(errData.items[0]).join(', ');
+  if (errData?.user) return flatten(errData.user).join(', ');
+  return flatten(errData).join(', ') || 'Booking failed';
+};
 
 const Checkout = () => {
   const { cartItems, removeFromCart, clearCart } = useCart();
@@ -57,6 +94,13 @@ const Checkout = () => {
     startDate: '',
     endDate: '',
     hours: 8,
+    startTime: '09:00',
+    estimatedHours: 2,
+    monthlyDurationMonths: 1,
+    workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    hoursPerDay: 8,
+    fulfillmentMode: 'SELF_PICKUP',
+    deliveryAddress: '',
     address: user?.address || '',
     phone: user?.phone || user?.mobile || '',
     paymentMode: 'CASH',
@@ -64,6 +108,11 @@ const Checkout = () => {
   });
 
   const hasWorker = bookingItems.some(item => item.type === 'WORKER');
+  const isToolBooking = bookingItems.length > 0 && bookingItems.every(item => item.type === 'TOOL' || (item.category !== undefined && item.skill === undefined));
+  const primaryWorker = bookingItems.find(item => item.type === 'WORKER') || bookingItems.find(item => item.skill);
+  const suggestedMode = isToolBooking ? 'TOOL' : getDefaultBookingMode(primaryWorker);
+  const [userSelectedMode, setUserSelectedMode] = useState(suggestedMode);
+  const bookingMode = isToolBooking ? 'TOOL' : userSelectedMode;
 
   const days = (() => {
     if (formData.startDate && formData.endDate) {
@@ -74,11 +123,21 @@ const Checkout = () => {
     }
     return 1;
   })();
+  const rentalDays = days;
+  const workingDaysPerMonth = formData.workingDays.length * 4;
+  const toolDeliveryFee = isToolBooking && formData.fulfillmentMode === 'DELIVERY' ? TOOL_DELIVERY_FEE : 0;
+  const toolSecurityDeposit = isToolBooking ? TOOL_SECURITY_DEPOSIT : 0;
 
   const calculateItemBase = (item) => {
     const price = Number(item.pricePerHour || item.pricePerDay || 0);
+    if (isToolBooking) {
+      const qty = Number(item.quantity || 1);
+      return Number(item.pricePerDay || price) * qty * rentalDays;
+    }
     if (item.type === 'WORKER') {
-      return price * formData.hours * days;
+      if (bookingMode === 'MONTHLY') return price * formData.monthlyDurationMonths * workingDaysPerMonth * formData.hoursPerDay;
+      if (bookingMode === 'HOURLY') return price * formData.estimatedHours;
+      return price * 8 * days;
     }
     const qty = Number(item.quantity || 1);
     return price * qty * days;
@@ -89,7 +148,7 @@ const Checkout = () => {
     return { ...item, base, total: base };
   });
 
-  const rawBaseAmount = pricingData.reduce((acc, item) => acc + item.total, 0);
+  const rawBaseAmount = pricingData.reduce((acc, item) => acc + item.total, 0) + toolDeliveryFee + toolSecurityDeposit;
   const baseAmount = Math.max(rawBaseAmount, MIN_BOOKING_AMOUNT);
   const platformFee = Math.round(baseAmount * 0.05);
   const gst = Math.round(baseAmount * 0.18);
@@ -111,13 +170,29 @@ const Checkout = () => {
 
   const handleNextStep = () => {
     if (step === 1) {
-      if (!formData.startDate || !formData.endDate) {
+      if (isToolBooking && (!formData.startDate || !formData.endDate)) {
+        toast.info('Please select pickup and return dates');
+        return;
+      }
+      if (!isToolBooking && bookingMode === 'DAILY' && (!formData.startDate || !formData.endDate)) {
         toast.info('Please select start and end dates');
+        return;
+      }
+      if (!isToolBooking && bookingMode !== 'DAILY' && !formData.startDate) {
+        toast.info('Please select a start date');
+        return;
+      }
+      if (!isToolBooking && bookingMode === 'HOURLY' && !formData.startTime) {
+        toast.info('Please select a start time');
         return;
       }
       setStep(2);
     } else if (step === 2) {
-      if (!formData.address || formData.address.length < 10) {
+      if (isToolBooking && formData.fulfillmentMode === 'DELIVERY' && (!formData.deliveryAddress || formData.deliveryAddress.length < 10)) {
+        toast.info('Please enter a complete delivery address');
+        return;
+      }
+      if (!isToolBooking && (!formData.address || formData.address.length < 10)) {
         toast.info('Please enter a complete delivery/service address');
         return;
       }
@@ -144,13 +219,25 @@ const Checkout = () => {
     try {
       const idempotencyKey = crypto.randomUUID();
       const items = bookingItems.map(item => {
+        const itemBookingMode = isToolBooking ? 'TOOL' : bookingMode;
         const payload = {
           date: formData.startDate,
-          time: '09:00',
-          address: formData.address,
+          time: itemBookingMode === 'HOURLY' ? formData.startTime : (selectedSlot ? { 'morning-1': '08:00', 'morning-2': '10:00', 'afternoon-1': '12:00', 'afternoon-2': '14:00', 'evening-1': '16:00', 'evening-2': '18:00' }[selectedSlot.id] : '09:00'),
+          address: isToolBooking ? (formData.fulfillmentMode === 'DELIVERY' ? formData.deliveryAddress : 'Self pickup at ServiceLink partner counter') : formData.address,
           total_price: Math.max(calculateItemBase(item), MIN_BOOKING_AMOUNT),
+          booking_type: itemBookingMode.toLowerCase(),
+          working_days: itemBookingMode === 'MONTHLY' ? formData.workingDays : [],
+          hours_per_day: itemBookingMode === 'MONTHLY' ? formData.hoursPerDay : (itemBookingMode === 'DAILY' ? 8 : formData.estimatedHours),
+          monthly_duration_months: itemBookingMode === 'MONTHLY' ? formData.monthlyDurationMonths : null,
         };
-        if (item.type === 'WORKER') payload.worker_id = item.id;
+        if (isToolBooking) {
+          payload.tool_id = item.id;
+          payload.return_date = formData.endDate;
+          payload.rental_days = rentalDays;
+          payload.delivery_mode = formData.fulfillmentMode;
+          payload.delivery_fee = toolDeliveryFee;
+          payload.security_deposit = TOOL_SECURITY_DEPOSIT;
+        } else if (item.type === 'WORKER') payload.worker_id = item.id;
         else payload.tool_id = item.id;
         return payload;
       });
@@ -166,11 +253,7 @@ const Checkout = () => {
 
       if (!res.ok) {
         const errData = await res.json();
-        const errorMessage = errData.detail ||
-                           (errData.user ? (Array.isArray(errData.user) ? errData.user[0] : errData.user) : null) ||
-                           (errData.items ? 'One or more items are unavailable' : null) ||
-                           'Booking failed';
-        throw new Error(errorMessage);
+        throw new Error(extractErrorMessage(errData));
       }
 
       if (!isDirectBooking) {
@@ -261,12 +344,42 @@ const Checkout = () => {
               {step === 1 && (
                 <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 animate-slide-in-right">
                   <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-blue-600" /> When do you need this?
+                    <Calendar className="w-5 h-5 text-blue-600" /> {isToolBooking ? 'Plan your rental' : 'When do you need this?'}
                   </h2>
+                  {!isToolBooking && (
+                    <div className="mb-6">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Booking Type</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {['DAILY', 'MONTHLY', 'HOURLY'].map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setUserSelectedMode(mode)}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all duration-200 ${
+                              bookingMode === mode
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/25'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                            }`}
+                          >
+                            {modeLabels[mode]}
+                            {mode === suggestedMode && <span className="ml-1.5 text-[10px] opacity-70">★</span>}
+                          </button>
+                        ))}
+                      </div>
+                      {bookingMode !== suggestedMode && (
+                        <p className="text-[11px] text-amber-600 mt-2 font-medium">★ Suggested: {modeLabels[suggestedMode]} for {primaryWorker?.skill}</p>
+                      )}
+                    </div>
+                  )}
+                  {isToolBooking && (
+                    <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-black uppercase tracking-wider">
+                      {modeLabels[bookingMode]}
+                    </div>
+                  )}
                   
                   <div className="grid sm:grid-cols-2 gap-4 mb-8">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start Date</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isToolBooking ? 'Pickup Date' : 'Start Date'}</label>
                       <input
                         type="date"
                         min={new Date().toISOString().split('T')[0]}
@@ -275,8 +388,9 @@ const Checkout = () => {
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 font-medium"
                       />
                     </div>
+                    {(isToolBooking || bookingMode === 'DAILY') && (
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End Date</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isToolBooking ? 'Return Date' : 'End Date'}</label>
                       <input
                         type="date"
                         min={formData.startDate || new Date().toISOString().split('T')[0]}
@@ -285,26 +399,101 @@ const Checkout = () => {
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 font-medium"
                       />
                     </div>
+                    )}
                   </div>
 
-                  {hasWorker && (
-                    <div className="mb-8 p-5 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
-                      <div className="bg-white p-2 rounded-xl shadow-sm text-blue-600"><Clock className="w-5 h-5" /></div>
-                      <div className="flex-1">
-                        <label className="block text-sm font-bold text-slate-900 mb-1">Daily Working Hours</label>
-                        <p className="text-xs text-slate-500 mb-3 leading-relaxed">How many hours per day do you need the professional?</p>
+                  {isToolBooking && (
+                    <div className="mb-8 p-5 rounded-2xl bg-cyan-50 border border-cyan-100">
+                      <p className="text-sm font-bold text-slate-900">Rental Duration</p>
+                      <p className="text-xs text-slate-500 mt-1">{rentalDays} day{rentalDays === 1 ? '' : 's'} selected</p>
+                    </div>
+                  )}
+
+                  {hasWorker && bookingMode === 'MONTHLY' && (
+                    <div className="mb-8 p-5 rounded-2xl bg-blue-50 border border-blue-100 space-y-5">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-900 mb-2">Monthly Duration</label>
+                        <select
+                          value={formData.monthlyDurationMonths}
+                          onChange={(e) => setFormData({ ...formData, monthlyDurationMonths: Number(e.target.value) })}
+                          className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                        >
+                          <option value={1}>1 Month</option>
+                          <option value={2}>2 Months</option>
+                          <option value={3}>3 Months</option>
+                        </select>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 mb-2">Working Days</p>
+                        <div className="flex flex-wrap gap-2">
+                          {WEEK_DAYS.map((day) => (
+                            <label key={day} className={`px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer ${formData.workingDays.includes(day) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-blue-100'}`}>
+                              <input
+                                type="checkbox"
+                                className="sr-only"
+                                checked={formData.workingDays.includes(day)}
+                                onChange={() => setFormData(prev => ({
+                                  ...prev,
+                                  workingDays: prev.workingDays.includes(day) ? prev.workingDays.filter(item => item !== day) : [...prev.workingDays, day],
+                                }))}
+                              />
+                              {day}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-900 mb-2">Hours Per Day</label>
+                        <select
+                          value={formData.hoursPerDay}
+                          onChange={(e) => setFormData({ ...formData, hoursPerDay: Number(e.target.value) })}
+                          className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                        >
+                          <option value={2}>2 hr</option>
+                          <option value={4}>4 hr</option>
+                          <option value={8}>Full day</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasWorker && bookingMode === 'HOURLY' && (
+                    <div className="mb-8 p-5 rounded-2xl bg-blue-50 border border-blue-100 grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-900 mb-2">Start Time</label>
                         <input
-                          type="number" min="1" max="24"
-                          value={formData.hours}
-                          onChange={(e) => setFormData({ ...formData, hours: parseInt(e.target.value, 10) || 1 })}
-                          className="w-24 px-4 py-2 bg-white border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-bold"
+                          type="time"
+                          value={formData.startTime}
+                          onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                          className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-900 mb-2">Estimated Hours: {formData.estimatedHours}</label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="8"
+                          value={formData.estimatedHours}
+                          onChange={(e) => setFormData({ ...formData, estimatedHours: Number(e.target.value) })}
+                          className="w-full accent-blue-600"
                         />
                       </div>
                     </div>
                   )}
 
+                  {hasWorker && bookingMode === 'DAILY' && (
+                    <div className="mb-8 p-5 rounded-2xl bg-blue-50 border border-blue-100 flex items-start gap-4">
+                      <div className="bg-white p-2 rounded-xl shadow-sm text-blue-600"><Clock className="w-5 h-5" /></div>
+                      <div className="flex-1">
+                        <label className="block text-sm font-bold text-slate-900 mb-1">Daily Working Hours</label>
+                        <p className="text-xs text-slate-500 leading-relaxed">Daily bookings are calculated as 8 working hours per selected day.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Time Slot Picker */}
-                  <div className="mb-8">
+                  {!isToolBooking && bookingMode !== 'HOURLY' && <div className="mb-8">
                     <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                       <Clock className="w-4 h-4 text-blue-600" />
                       Preferred Time Slot
@@ -329,7 +518,7 @@ const Checkout = () => {
                         </div>
                       </div>
                     ))}
-                  </div>
+                  </div>}
 
                   <h3 className="text-sm font-bold text-slate-900 mb-4 border-b border-gray-100 pb-2">Order Summary ({bookingItems.length} items)</h3>
                   <div className="space-y-4">
@@ -364,9 +553,41 @@ const Checkout = () => {
                   </button>
                   
                   <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-emerald-500" /> Delivery Address
+                    <MapPin className="w-5 h-5 text-emerald-500" /> {isToolBooking ? 'Pickup or Delivery' : 'Service Address'}
                   </h2>
 
+                  {isToolBooking ? (
+                    <div className="mb-8 space-y-5">
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { value: 'SELF_PICKUP', label: 'Self Pickup' },
+                          { value: 'DELIVERY', label: 'Delivery (₹50 flat)' },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, fulfillmentMode: option.value })}
+                            className={`py-3 rounded-xl text-sm font-bold border transition-all ${formData.fulfillmentMode === option.value ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-gray-200 hover:bg-gray-50'}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      {formData.fulfillmentMode === 'DELIVERY' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Delivery Address</label>
+                          <textarea
+                            rows="4"
+                            placeholder="Enter delivery address and landmark..."
+                            value={formData.deliveryAddress}
+                            onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 font-medium resize-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                  <>
                   <div className="mb-8">
                     <p className="text-sm font-bold text-slate-900 mb-4">Or choose a saved address:</p>
                     <AddressManager onSelect={(addr) => {
@@ -404,6 +625,21 @@ const Checkout = () => {
                       />
                     </div>
                   </div>
+                  </>
+                  )}
+
+                  {isToolBooking && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Contact Number</label>
+                      <input
+                        type="tel"
+                        placeholder="10-digit mobile number"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 font-medium"
+                      />
+                    </div>
+                  )}
 
                   <button onClick={handleNextStep} className="w-full mt-8 py-4 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
                     Continue to Payment <ChevronRight className="w-5 h-5" />
@@ -542,12 +778,36 @@ const Checkout = () => {
             <div className="relative">
               <div className="sticky top-24 bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
                 <h3 className="font-black text-slate-900 text-lg mb-5">Price Details</h3>
+                <div className="mb-5 rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">{modeLabels[bookingMode]}</p>
+                  {isToolBooking ? (
+                    <p className="text-sm font-bold text-slate-900">Daily rate × {rentalDays} day{rentalDays === 1 ? '' : 's'} = {formatCurrency(pricingData.reduce((acc, item) => acc + item.total, 0))}</p>
+                  ) : bookingMode === 'MONTHLY' ? (
+                    <p className="text-sm font-bold text-slate-900">Rate × {formData.monthlyDurationMonths} month{formData.monthlyDurationMonths === 1 ? '' : 's'} × {workingDaysPerMonth} days × {formData.hoursPerDay} hr = {formatCurrency(pricingData.reduce((acc, item) => acc + item.total, 0))}</p>
+                  ) : bookingMode === 'HOURLY' ? (
+                    <p className="text-sm font-bold text-slate-900">Rate × {formData.estimatedHours} hr = {formatCurrency(pricingData.reduce((acc, item) => acc + item.total, 0))}</p>
+                  ) : (
+                    <p className="text-sm font-bold text-slate-900">Rate × {days} day{days === 1 ? '' : 's'} × 8 hr = {formatCurrency(pricingData.reduce((acc, item) => acc + item.total, 0))}</p>
+                  )}
+                </div>
                 
                 <div className="space-y-4 text-sm font-medium">
                   <div className="flex justify-between text-slate-500">
                     <span>Base Amount</span>
                     <span className="text-slate-900">{formatCurrency(baseAmount)}</span>
                   </div>
+                  {isToolBooking && (
+                    <>
+                      <div className="flex justify-between text-slate-500">
+                        <span>Delivery Fee</span>
+                        <span className="text-slate-900">{formatCurrency(toolDeliveryFee)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500">
+                        <span>Security Deposit <span className="text-[10px] bg-slate-100 px-1 rounded">refundable</span></span>
+                        <span className="text-slate-900">{formatCurrency(toolSecurityDeposit)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between text-slate-500">
                     <span>Platform Fee <span className="text-[10px] bg-slate-100 px-1 rounded">(5%)</span></span>
                     <span className="text-slate-900">{formatCurrency(platformFee)}</span>

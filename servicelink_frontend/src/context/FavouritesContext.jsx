@@ -13,14 +13,15 @@ export const FavouritesProvider = ({ children }) => {
   }, [favourites]);
 
   const toggleFavourite = (workerId) => {
+    const idStr = String(workerId);
     setFavourites(prev =>
-      prev.includes(workerId)
-        ? prev.filter(id => id !== workerId)
-        : [...prev, workerId]
+      prev.includes(idStr)
+        ? prev.filter(id => id !== idStr)
+        : [...prev, idStr]
     );
   };
 
-  const isFavourite = (workerId) => favourites.includes(workerId);
+  const isFavourite = (workerId) => favourites.includes(String(workerId));
 
   return (
     <FavouritesContext.Provider value={{ favourites, toggleFavourite, isFavourite }}>

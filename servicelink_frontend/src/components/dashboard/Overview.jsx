@@ -32,10 +32,10 @@ const banners = [
 ];
 
 const quickServices = [
-  { name: 'Electrician', icon: Zap, color: 'bg-amber-100 text-amber-600' },
-  { name: 'Plumber', icon: Droplets, color: 'bg-blue-100 text-blue-600' },
-  { name: 'Carpenter', icon: Hammer, color: 'bg-orange-100 text-orange-600' },
-  { name: 'Cleaning', icon: Sparkles, color: 'bg-emerald-100 text-emerald-600' },
+  { name: 'Electrician', icon: Zap, color: 'bg-amber-100 text-amber-600', path: '/services' },
+  { name: 'Plumber', icon: Droplets, color: 'bg-blue-100 text-blue-600', path: '/services' },
+  { name: 'Carpenter', icon: Hammer, color: 'bg-orange-100 text-orange-600', path: '/services' },
+  { name: 'Rent Tools', icon: Wrench, color: 'bg-emerald-100 text-emerald-600', path: '/tools' },
 ];
 
 const Overview = ({ bookings, stats }) => {
@@ -107,7 +107,7 @@ const Overview = ({ bookings, stats }) => {
         </div>
         <div className="grid grid-cols-4 gap-3 sm:gap-6">
           {quickServices.map(service => (
-            <Link to="/services" key={service.name} className="flex flex-col items-center group">
+            <Link to={service.path || '/services'} key={service.name} className="flex flex-col items-center group">
               <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-[1.5rem] flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all ${service.color}`}>
                 <service.icon className="w-6 h-6 sm:w-8 sm:h-8" />
               </div>

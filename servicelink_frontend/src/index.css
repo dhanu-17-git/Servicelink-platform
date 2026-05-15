@@ -374,30 +374,250 @@ html {
     0 15px 20px -15px rgba(0, 0, 0, 0.15);
 }
 
-/* Dark mode utility overrides */
+/* ═══════════════════════════════════════════════════════════
+   DARK MODE — Comprehensive Overrides
+   ═══════════════════════════════════════════════════════════ */
+
+/* Body & page background */
+.dark body,
+.dark .bg-surface {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+.dark .min-h-screen {
+  background-color: #0f172a;
+}
+
+/* ── Card & container backgrounds ── */
 .dark .bg-white {
-  background-color: var(--card-bg) !important;
-}
-
-.dark .text-heading {
-  color: var(--text-primary) !important;
-}
-
-.dark .text-muted {
-  color: var(--text-secondary) !important;
-}
-
-.dark .border-gray-100 {
-  border-color: var(--border-color) !important;
-}
-
-.dark .bg-gray-50,
-.dark .bg-gray-50\/50 {
   background-color: #1e293b !important;
 }
 
+.dark .bg-white\/80 {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-50\/50,
+.dark .bg-gray-100 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-\[\#FFF5EB\] {
+  background-color: rgba(210, 105, 30, 0.1) !important;
+}
+
+.dark .text-\[\#D2691E\] {
+  color: #fb923c !important; /* Lighter orange for dark mode */
+}
+
+.dark .border-\[\#f97316\]\/20 {
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+.dark .bg-\[radial-gradient\(circle_at_top_left\2c_rgba\(37\2c99\2c235\2c0\.10\)\2c_transparent_32\%\)\2c\#f8fbff\] {
+  background: radial-gradient(circle at top left, rgba(37,99,235,0.10), transparent 32%), #0f172a !important;
+}
+
+.dark .bg-\[radial-gradient\(circle_at_top_right\2c_rgba\(210\2c105\2c30\2c0\.10\)\2c_transparent_30\%\)\2c\#fff\] {
+  background: radial-gradient(circle at top right, rgba(210,105,30,0.10), transparent 30%), #0f172a !important;
+}
+
+.dark .bg-\[radial-gradient\(circle_at_top_right\2c_rgba\(20\2c184\2c166\2c0\.10\)\2c_transparent_30\%\)\2c\#fff\] {
+  background: radial-gradient(circle at top right, rgba(20,184,166,0.10), transparent 30%), #0f172a !important;
+}
+
+/* Tools pill buttons */
+.dark .bg-\[\#7FFFD4\] {
+  background-color: rgba(127, 255, 212, 0.15) !important;
+}
+
+.dark .text-\[\#006060\] {
+  color: #7fffd4 !important;
+}
+
+.dark .border-\[\#7FFFD4\] {
+  border-color: rgba(127, 255, 212, 0.3) !important;
+}
+
+.dark .hover\:border-\[\#7FFFD4\]\/50:hover {
+  border-color: rgba(127, 255, 212, 0.5) !important;
+}
+
+.dark .hover\:text-\[\#006060\]:hover {
+  color: #a7f3d0 !important;
+}
+
+.dark .bg-gray-900 {
+  background-color: #334155 !important;
+}
+
+.dark .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.1) !important;
+}
+
+.dark .text-orange-700 {
+  color: #fb923c !important;
+}
+
+.dark .border-orange-100 {
+  border-color: rgba(249, 115, 22, 0.2) !important;
+}
+
+/* ── Text colors ── */
+.dark .text-heading {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-muted {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-900,
+.dark .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-gray-800,
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-gray-700,
+.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-600,
+.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-500,
+.dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+.dark .text-gray-400,
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* ── Borders ── */
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: #334155 !important;
+}
+
+.dark .border-white {
+  border-color: #334155 !important;
+}
+
+.dark .border-emerald-100,
+.dark .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+/* ── Form inputs & selects ── */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #f97316 !important;
+}
+
+/* ── Shadows ── */
 .dark .shadow-card {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .shadow-card-hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .shadow-float {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .shadow-nav {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ── Glass effect ── */
+.dark .glass {
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* ── Specific component overrides ── */
+
+/* Notification dropdown */
+.dark .bg-white.rounded-xl {
+  background-color: #1e293b !important;
+}
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: #334155 !important;
+}
+
+/* Section headings badge pills */
+.dark .bg-primary-50 {
+  background-color: rgba(249, 115, 22, 0.1) !important;
+}
+
+.dark .text-primary-700 {
+  color: #fb923c !important;
+}
+
+/* Misc background colors used in pages */
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.dark .bg-purple-50 {
+  background-color: rgba(139, 92, 246, 0.1) !important;
+}
+
+.dark .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.1) !important;
+}
+
+/* Divider lines */
+.dark .divide-gray-100 > :not(:last-child) {
+  border-color: #334155 !important;
+}
+
+.dark .border-t.border-gray-100,
+.dark .border-b.border-gray-100 {
+  border-color: #334155 !important;
 }
 
 /* Shake animation for invalid coupon */

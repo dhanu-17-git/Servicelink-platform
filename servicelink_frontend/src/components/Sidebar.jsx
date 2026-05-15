@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { Calendar, User, X } from 'lucide-react';
+import { Calendar, User, X, Wrench } from 'lucide-react';
 
 const sidebarLinks = [
   { name: 'Overview', path: '/dashboard', icon: Calendar },
   { name: 'My Bookings', path: '/dashboard/bookings', icon: Calendar },
+  { name: 'Tools', path: '/tools', icon: Wrench },
   { name: 'Profile', path: '/dashboard/profile', icon: User },
 ];
 

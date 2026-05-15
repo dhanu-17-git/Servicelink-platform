@@ -41,6 +41,9 @@ const Dashboard = () => {
           bookingType: b.booking_type,
           address: b.address,
           createdAt: b.created_at,
+          changeRequestStatus: b.change_request_status,
+          changeRequestField: b.change_request_field,
+          changeRequestValue: b.change_request_value,
         }));
 
         setBookings(formatted);
