@@ -3,8 +3,8 @@ import pymysql
 def setup_db():
     print("Attempting to connect to local MySQL Server...")
     
-    # Try common default credentials
     credentials = [
+        {"host": "127.0.0.1", "user": "root", "password": "Dhanu@123"},
         {"host": "localhost", "user": "root", "password": ""},
         {"host": "localhost", "user": "root", "password": "password"},
         {"host": "localhost", "user": "root", "password": "root"},
@@ -28,13 +28,13 @@ def setup_db():
         print("ERROR: Could not connect to MySQL using default credentials.")
         print("Please ensure MySQL server is running (e.g. via XAMPP or MySQL Service).")
         print("If you have a specific password, please create the database manually:")
-        print("CREATE DATABASE labourgrid;")
+        print("CREATE DATABASE servicelink;")
         return
         
     try:
         with connection.cursor() as cursor:
-            cursor.execute("CREATE DATABASE IF NOT EXISTS labourgrid;")
-            print("SUCCESS: Database 'labourgrid' created successfully!")
+            cursor.execute("CREATE DATABASE IF NOT EXISTS servicelink;")
+            print("SUCCESS: Database 'servicelink' created successfully!")
     except Exception as e:
         print(f"ERROR: Failed to create database: {e}")
     finally:

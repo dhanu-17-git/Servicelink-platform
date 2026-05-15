@@ -8,6 +8,7 @@ from .models import User
 
 class PublicUserSerializer(serializers.ModelSerializer):
     is_profile_complete = serializers.BooleanField(read_only=True)
+    worker = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -22,8 +23,30 @@ class PublicUserSerializer(serializers.ModelSerializer):
             "is_worker",
             "is_active",
             "is_profile_complete",
+            "worker",
         ]
-        read_only_fields = ["id", "email", "is_active", "is_profile_complete"]
+        read_only_fields = ["id", "email", "is_active", "is_profile_complete", "worker"]
+
+    def get_worker(self, obj):
+        if obj.is_worker and hasattr(obj, 'worker_profile'):
+            wp = obj.worker_profile
+            return {
+                "id": wp.id,
+                "skill": wp.get_skill_display() if hasattr(wp, 'get_skill_display') else wp.skill,
+                "experience": wp.experience,
+                "rating": str(wp.rating),
+                "price_per_hour": str(wp.price_per_hour),
+                "availability": wp.availability,
+                "languages": wp.languages or [],
+                "bio": wp.bio or "",
+                "specializations": wp.specializations or "",
+                "service_areas": wp.service_areas or [],
+                "response_time_minutes": wp.response_time_minutes,
+                "is_id_verified": wp.is_id_verified,
+                "working_hours_start": str(wp.working_hours_start) if wp.working_hours_start else None,
+                "working_hours_end": str(wp.working_hours_end) if wp.working_hours_end else None,
+            }
+        return None
 
 
 class RegisterSerializer(serializers.ModelSerializer):

@@ -5,14 +5,38 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Booking, IdempotencyKey
+from .models import Booking, IdempotencyKey, BookingChangeRequest
 from .permissions import IsBookingOwner, IsBookingOwnerOrWorker
 from .serializers import (
     BookingCreateSerializer,
     BookingSerializer,
     BookingUpdateSerializer,
     BulkBookingSerializer,
+    BookingChangeRequestSerializer,
+    BookingChangeRequestCreateSerializer,
+    BookingChangeRequestUpdateSerializer,
 )
+
+
+class BookingChangeRequestViewSet(viewsets.GenericViewSet):
+    """Standalone viewset for workers to accept/reject change requests."""
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = BookingChangeRequest.objects.select_related("booking__worker__user", "booking__user").all()
+
+    @action(detail=True, methods=["patch"], url_path="handle")
+    def handle(self, request, pk=None):
+        try:
+            change_request = self.queryset.get(pk=pk)
+        except BookingChangeRequest.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = BookingChangeRequestUpdateSerializer(
+            change_request, data=request.data, partial=True,
+            context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        return Response(BookingChangeRequestSerializer(updated).data)
 
 
 class BookingViewSet(
@@ -118,6 +142,8 @@ class BookingViewSet(
             )
         bookings = Booking.objects.select_related(
             "user", "worker__user", "tool"
+        ).prefetch_related(
+            "change_requests"
         ).filter(worker=request.user.worker_profile).order_by("-created_at")
         serializer = BookingSerializer(
             bookings,
@@ -131,7 +157,9 @@ class BookingViewSet(
     def update_status(self, request, pk=None, *args, **kwargs):
         """Allow worker or user to update booking status."""
         booking = Booking.objects.select_related("user", "worker__user", "tool").get(pk=pk)
-        serializer = BookingUpdateSerializer(booking, data=request.data, partial=True)
+        serializer = BookingUpdateSerializer(
+            booking, data=request.data, partial=True, context=self.get_serializer_context()
+        )
         serializer.is_valid(raise_exception=True)
         updated = serializer.save()
         return Response(BookingSerializer(updated, context=self.get_serializer_context()).data)
@@ -148,3 +176,67 @@ class BookingViewSet(
                 context=self.get_serializer_context(),
             ).data
         )
+
+    @action(detail=True, methods=["post", "patch"], url_path="change-request",
+            permission_classes=[permissions.IsAuthenticated])
+    def change_request(self, request, pk=None, *args, **kwargs):
+        """Handle booking change requests.
+        
+        POST: Create a new change request (only by booking owner, for confirmed bookings)
+        PATCH: Accept/Reject a change request (only by assigned worker)
+        """
+        try:
+            booking = Booking.objects.select_related("user", "worker__user").get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response(
+                {"detail": "Booking not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.method == "POST":
+            # Create a new change request
+            serializer = BookingChangeRequestCreateSerializer(
+                data=request.data,
+                context={**self.get_serializer_context(), "booking_id": pk}
+            )
+            serializer.is_valid(raise_exception=True)
+            change_request = serializer.save()
+            return Response(
+                BookingChangeRequestSerializer(change_request).data,
+                status=status.HTTP_201_CREATED,
+            )
+
+        elif request.method == "PATCH":
+            # Accept/Reject a change request
+            # Get change_request_id from query params
+            change_request_id = request.query_params.get("change_request_id") or request.data.get("change_request_id")
+            
+            if not change_request_id:
+                return Response(
+                    {"detail": "change_request_id is required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            try:
+                change_request = BookingChangeRequest.objects.get(
+                    pk=change_request_id,
+                    booking_id=pk
+                )
+            except BookingChangeRequest.DoesNotExist:
+                return Response(
+                    {"detail": "Change request not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            serializer = BookingChangeRequestUpdateSerializer(
+                change_request,
+                data=request.data,
+                partial=True,
+                context=self.get_serializer_context()
+            )
+            serializer.is_valid(raise_exception=True)
+            updated_request = serializer.save()
+            return Response(
+                BookingChangeRequestSerializer(updated_request).data,
+                status=status.HTTP_200_OK,
+            )

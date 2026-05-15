@@ -11,14 +11,15 @@ from apps.tools.serializers import ToolSerializer
 from apps.workers.models import Worker
 from apps.workers.serializers import WorkerSerializer
 
-from .models import Booking
+from .models import Booking, BookingChangeRequest
 
 
 class BookingSerializer(serializers.ModelSerializer):
     user = PublicUserSerializer(read_only=True)
     worker = WorkerSerializer(read_only=True)
     tool = ToolSerializer(read_only=True)
-    booking_type = serializers.CharField(read_only=True)
+    resource_type = serializers.SerializerMethodField(read_only=True)
+    pending_change_request = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Booking
@@ -27,14 +28,33 @@ class BookingSerializer(serializers.ModelSerializer):
             "user",
             "worker",
             "tool",
+            "resource_type",
             "booking_type",
+            "working_days",
+            "hours_per_day",
+            "monthly_duration_months",
             "date",
             "time",
             "address",
             "total_price",
             "status",
             "created_at",
+            "pending_change_request",
         ]
+
+    def get_resource_type(self, obj):
+        return "worker" if obj.worker_id else "tool"
+
+    def get_pending_change_request(self, obj):
+        req = obj.change_requests.filter(status='pending').first()
+        if not req:
+            return None
+        return {
+            "id": req.pk,
+            "field_name": req.field_name,
+            "old_value": req.old_value,
+            "new_value": req.new_value,
+        }
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):
@@ -56,6 +76,10 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         fields = [
             "worker_id",
             "tool_id",
+            "booking_type",
+            "working_days",
+            "hours_per_day",
+            "monthly_duration_months",
             "date",
             "time",
             "address",
@@ -69,6 +93,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         tool = attrs.get("tool")
         total_price = attrs.get("total_price")
         booking_date = attrs.get("date")
+        booking_type = attrs.get("booking_type", "daily")
 
         if not user.is_profile_complete:
             raise serializers.ValidationError(
@@ -251,3 +276,130 @@ class BulkBookingSerializer(serializers.Serializer):
         # We pass them directly to the internal create() method.
         item_serializer = BulkItemSerializer(context=self.context)
         return [item_serializer.create(item) for item in items_data]
+
+
+class BookingChangeRequestSerializer(serializers.ModelSerializer):
+    requested_by_user = PublicUserSerializer(read_only=True)
+
+    class Meta:
+        model = BookingChangeRequest
+        fields = [
+            "id",
+            "booking",
+            "requested_by_user",
+            "field_name",
+            "old_value",
+            "new_value",
+            "status",
+            "created_at",
+        ]
+
+
+class BookingChangeRequestCreateSerializer(serializers.ModelSerializer):
+    old_value = serializers.CharField(required=False, allow_blank=True, default='')
+
+    class Meta:
+        model = BookingChangeRequest
+        fields = [
+            "field_name",
+            "old_value",
+            "new_value",
+        ]
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        booking_id = self.context.get("booking_id")
+
+        try:
+            booking = Booking.objects.get(pk=booking_id)
+        except Booking.DoesNotExist:
+            raise serializers.ValidationError("Booking not found.")
+
+        # Allow change requests for confirmed or navigating bookings
+        if booking.status not in {Booking.Status.CONFIRMED, Booking.Status.NAVIGATING}:
+            raise serializers.ValidationError(
+                "Change requests can only be made for confirmed or in-progress bookings."
+            )
+
+        # Never allow changes to payment amount
+        if attrs.get("field_name") == "total_price":
+            raise serializers.ValidationError(
+                "Cannot request changes to payment amount."
+            )
+
+        # Only the booking owner can request changes
+        if booking.user != request.user:
+            raise serializers.ValidationError(
+                "Only the booking owner can request changes."
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        booking_id = self.context.get("booking_id")
+        booking = Booking.objects.get(pk=booking_id)
+
+        return BookingChangeRequest.objects.create(
+            booking=booking,
+            requested_by_user=request.user,
+            **validated_data
+        )
+
+
+class BookingChangeRequestUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BookingChangeRequest
+        fields = ["status"]
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        instance = self.instance
+        new_status = attrs.get("status", instance.status)
+
+        # Only the worker can accept/reject change requests
+        if instance.booking.worker is None or instance.booking.worker.user != request.user:
+            raise serializers.ValidationError(
+                "Only the assigned worker can accept or reject change requests."
+            )
+
+        # Lock change requests when booking is not confirmed or navigating
+        locked_statuses = {
+            Booking.Status.ARRIVED,
+            Booking.Status.WORKING,
+            Booking.Status.COMPLETED,
+            Booking.Status.CANCELLED,
+        }
+        if instance.booking.status in locked_statuses:
+            raise serializers.ValidationError(
+                "Cannot modify change requests for bookings that have already arrived or finished."
+            )
+
+        return attrs
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        previous_status = instance.status
+        new_status = validated_data.get("status", instance.status)
+
+        # Update the status
+        instance.status = new_status
+        instance.save()
+
+        # If accepted, update the booking field
+        if new_status == BookingChangeRequest.Status.ACCEPTED and previous_status == BookingChangeRequest.Status.PENDING:
+            booking = instance.booking
+            field_name = instance.field_name
+            new_value = instance.new_value
+
+            # Update the booking field
+            setattr(booking, field_name, new_value)
+            booking.save()
+
+        # If rejected, auto-cancel the booking
+        if new_status == BookingChangeRequest.Status.REJECTED and previous_status == BookingChangeRequest.Status.PENDING:
+            booking = instance.booking
+            booking.status = Booking.Status.CANCELLED
+            booking.save(update_fields=["status"])
+
+        return instance

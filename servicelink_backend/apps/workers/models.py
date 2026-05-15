@@ -60,6 +60,43 @@ class Worker(models.Model):
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=Decimal("0.00"))
     availability = models.BooleanField(default=True, db_index=True)
     price_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
+    languages = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of languages spoken, e.g. ['Kannada', 'English']",
+    )
+    bio = models.TextField(
+        max_length=500,
+        blank=True,
+        help_text="Brief biography or description of the worker",
+    )
+    specializations = models.TextField(
+        blank=True,
+        help_text="Specializations or expertise areas, e.g. 'Home wiring, Inverter installation'",
+    )
+    response_time_minutes = models.IntegerField(
+        default=15,
+        help_text="Average minutes to accept a booking",
+    )
+    is_id_verified = models.BooleanField(
+        default=False,
+        help_text="Whether the worker's ID has been verified",
+    )
+    service_areas = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of service area location names",
+    )
+    working_hours_start = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="Start time of working hours (HH:MM format)",
+    )
+    working_hours_end = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="End time of working hours (HH:MM format)",
+    )
 
     class Meta:
         ordering = ["-rating", "id"]

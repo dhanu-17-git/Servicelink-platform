@@ -29,77 +29,133 @@ def seed():
     User.objects.filter(is_worker=True).delete()
     print("  - Old workers, tools, and bookings deleted.")
 
-    # ── STEP 2: Create Workers (matching dummyData.js) ──
-    print("\n[2/3] Creating 36 workers...")
+    # ── STEP 2: Create Workers (Programmatic coverage for all categories & locations) ──
+    print("\n[2/3] Generating workers for all service-location combinations...")
 
-    workers_data = [
-        # Construction & Repair
-        ("Rajesh Kumar", "mason", 4.8, 350, "Gokulam", 8, True),
-        ("Suresh Patel", "carpenter", 4.9, 400, "Jayalakshmipuram", 12, True),
-        ("Manoj Verma", "electrician", 4.5, 320, "Vijayanagar", 4, True),
-        ("Amit Sharma", "plumber", 4.6, 300, "Kuvempunagar", 5, True),
-        ("Prakash Rao", "welder", 4.6, 450, "J.P. Nagar", 9, True),
-        ("Vikram Singh", "painter", 4.7, 280, "Saraswathipuram", 6, True),
-        ("Ravi Tiwari", "tile_worker", 4.4, 370, "Hebbal", 7, True),
-        ("Santosh Gupta", "concrete_worker", 4.3, 340, "N.R. Mohalla", 5, False),
-        ("Bharat Yadav", "roofer", 4.5, 380, "Siddharthanagar", 8, True),
-        # Home Services
-        ("Sunita Devi", "house_cleaner", 4.8, 200, "Yelwal", 6, True),
-        ("Meena Kumari", "cook", 4.9, 350, "Gokulam", 10, True),
-        ("Priya Nair", "babysitter", 4.7, 250, "Jayalakshmipuram", 4, True),
-        ("Ramesh Babu", "caretaker", 4.5, 280, "Vijayanagar", 7, True),
-        ("Gopal Mishra", "gardener", 4.6, 220, "Kuvempunagar", 9, True),
-        ("Kiran Sahu", "pest_control", 4.4, 400, "J.P. Nagar", 5, False),
-        # Transport & Moving
-        ("Dinesh Pal", "loader", 4.3, 250, "Saraswathipuram", 3, True),
-        ("Ajay Thakur", "mover", 4.6, 300, "Hebbal", 6, True),
-        ("Rahul Das", "delivery", 4.5, 200, "N.R. Mohalla", 2, True),
-        ("Vijay Chauhan", "driver", 4.8, 350, "Siddharthanagar", 10, True),
-        # Skilled Technical
-        ("Deepak Joshi", "ac_technician", 4.8, 450, "Yelwal", 10, True),
-        ("Arun Nair", "fridge_technician", 4.4, 400, "Gokulam", 7, True),
-        ("Naveen Reddy", "washing_technician", 4.5, 380, "Jayalakshmipuram", 5, True),
-        ("Sanjay Pandey", "mobile_technician", 4.7, 300, "Vijayanagar", 6, True),
-        ("Rohit Saxena", "computer_technician", 4.6, 450, "Kuvempunagar", 8, True),
-        # Agriculture & Outdoor
-        ("Lakshman Gowda", "farm_worker", 4.3, 200, "J.P. Nagar", 15, True),
-        ("Mohan Prajapati", "harvester", 4.2, 220, "Saraswathipuram", 12, True),
-        ("Harish Naik", "irrigation", 4.4, 250, "Hebbal", 8, False),
-        ("Jagdish Meena", "dairy_worker", 4.5, 230, "N.R. Mohalla", 10, True),
-        # Industrial
-        ("Pankaj Dubey", "factory_worker", 4.3, 280, "Siddharthanagar", 6, True),
-        ("Sunil Yadav", "machine_operator", 4.6, 380, "Yelwal", 9, True),
-        ("Kamal Jain", "packaging_worker", 4.2, 200, "Gokulam", 3, True),
-        ("Raju Mandal", "warehouse_worker", 4.4, 250, "Jayalakshmipuram", 5, False),
-        # Event & Temporary
-        ("Nitin Kulkarni", "event_setup", 4.5, 300, "Vijayanagar", 5, True),
-        ("Anand Pillai", "decorator", 4.8, 400, "Kuvempunagar", 8, True),
-        ("Farhan Sheikh", "sound_light", 4.6, 450, "J.P. Nagar", 7, True),
-        ("Balraj Chauhan", "security_guard", 4.4, 250, "Saraswathipuram", 10, True),
+    locations = [
+        "Gokulam", "Jayalakshmipuram", "Vijayanagar", "Kuvempunagar", 
+        "J.P. Nagar", "Saraswathipuram", "Hebbal", "N.R. Mohalla", 
+        "Siddharthanagar", "Yelwal"
     ]
 
-    for i, (name, skill, rating, price, city, exp, avail) in enumerate(workers_data, 1):
-        email = f"{name.lower().replace(' ', '.')}@gmail.com"
-        price = max(price, 500)  # Minimum price ₹500
-        user = User.objects.create_user(
-            email=email,
-            password="password123",
-            name=name,
-            phone=f"98765{i:05d}",
-            is_worker=True,
-            city=city,
-            address=f"Street {i}, {city}",
-            pincode="560001",
-        )
-        Worker.objects.create(
-            user=user,
-            skill=skill,
-            experience=exp,
-            rating=Decimal(str(rating)),
-            price_per_hour=Decimal(str(price)),
-            availability=avail,
-        )
-        print(f"  - {name} ({skill}) — Rs {price}/hr")
+    service_hierarchy = {
+        "Electrician & Appliances": [
+            "Electrician", "AC technician", "Refrigerator technician", 
+            "Washing machine technician", "Mobile repair technician", 
+            "Computer technician", "Sound/Light Technician"
+        ],
+        "Construction & Repair": [
+            "Mason", "Carpenter", "Plumber", "Welder", "Painter", 
+            "Tile worker", "Roofer", "Concrete Worker"
+        ],
+        "Home & Care": [
+            "House cleaner", "Cook", "Babysitter", "Caretaker", 
+            "Gardener", "Pest control worker"
+        ],
+        "Transport & Moving": [
+            "Driver", "Delivery worker", "Loader / Unloader", 
+            "House shifting worker", "Mover"
+        ],
+        "Agriculture & Outdoor": [
+            "Farm worker", "Tractor operator", "Harvester operator", 
+            "Irrigation worker", "Pesticide sprayer", "Dairy worker"
+        ],
+        "Industrial & Events": [
+            "Factory worker", "Machine operator", "Warehouse worker", 
+            "Security guard", "Event setup worker", "Decorator", "Packaging Worker"
+        ]
+    }
+
+    # Define pricing ranges for each skill (Mysore semi-urban rates)
+    skill_pricing = {
+        "Electrician": (150, 250),
+        "AC technician": (300, 500),
+        "Refrigerator technician": (200, 350),
+        "Washing machine technician": (200, 350),
+        "Mobile repair technician": (200, 350),
+        "Computer technician": (200, 350),
+        "Sound/Light Technician": (250, 400),
+        "Mason": (450, 650),
+        "Carpenter": (400, 600),
+        "Plumber": (120, 200),
+        "Welder": (300, 450),
+        "Painter": (350, 500),
+        "Tile worker": (350, 500),
+        "Roofer": (400, 600),
+        "Concrete Worker": (400, 600),
+        "House cleaner": (85, 170),
+        "Cook": (125, 250),
+        "Babysitter": (100, 200),
+        "Caretaker": (200, 330),
+        "Gardener": (65, 125),
+        "Pest control worker": (150, 250),
+        "Driver": (500, 800),
+        "Delivery worker": (200, 350),
+        "Loader / Unloader": (150, 250),
+        "House shifting worker": (300, 500),
+        "Mover": (300, 500),
+        "Farm worker": (100, 200),
+        "Tractor operator": (400, 600),
+        "Harvester operator": (500, 800),
+        "Irrigation worker": (100, 200),
+        "Pesticide sprayer": (150, 250),
+        "Dairy worker": (100, 200),
+        "Factory worker": (200, 350),
+        "Machine operator": (300, 450),
+        "Warehouse worker": (200, 350),
+        "Security guard": (290, 420),
+        "Event setup worker": (250, 400),
+        "Decorator": (300, 500),
+        "Packaging Worker": (150, 250),
+    }
+
+    # Common names for generation
+    first_names = ["Arjun", "Bala", "Chetan", "Deepak", "Eshwar", "Farhan", "Ganesh", "Hari", "Irfan", "Jatin", "Kiran", "Lokesh", "Manoj", "Nitin", "Om", "Pankaj", "Rahul", "Suresh", "Tarun", "Umesh", "Vijay", "Wasim", "Yuvraj", "Zaid"]
+    last_names = ["Kumar", "Patel", "Sharma", "Singh", "Yadav", "Nair", "Reddy", "Gowda", "Verma", "Pandey", "Joshi", "Das", "Thakur", "Mishra", "Gupta", "Sahu"]
+
+    import random
+    
+    worker_count = 0
+    for loc_idx, location in enumerate(locations):
+        for cat_name, skills in service_hierarchy.items():
+            for skill_idx, skill in enumerate(skills):
+                worker_count += 1
+                
+                # Generate a unique name
+                fname = first_names[(loc_idx + skill_idx) % len(first_names)]
+                lname = last_names[(worker_count) % len(last_names)]
+                name = f"{fname} {lname}"
+                
+                email = f"{fname.lower()}.{lname.lower()}.{worker_count}@servicelink.com"
+                
+                # Randomized but realistic stats
+                rating = round(random.uniform(4.2, 5.0), 1)
+                # Get pricing range for the skill
+                price_range = skill_pricing.get(skill, (200, 400))
+                price = random.randint(price_range[0], price_range[1])
+                exp = random.randint(2, 15)
+                
+                user = User.objects.create_user(
+                    email=email,
+                    password="password123",
+                    name=name,
+                    phone=f"9{worker_count:09d}"[:10], # Generate 10-digit number
+                    is_worker=True,
+                    city=location,
+                    address=f"Building {worker_count}, {location} Main Rd",
+                    pincode=f"5700{10+loc_idx}",
+                )
+                
+                Worker.objects.create(
+                    user=user,
+                    skill=skill,
+                    experience=exp,
+                    rating=Decimal(str(rating)),
+                    price_per_hour=Decimal(str(price)),
+                    availability=True,
+                )
+                
+    print(f"  - Successfully generated {worker_count} workers across {len(locations)} locations.")
 
     # ── STEP 3: Create Tools (matching dummyData.js) ──
     print("\n[3/3] Creating 50 tools...")
@@ -166,6 +222,8 @@ def seed():
         ("Sprinkler System", "Irrigation Equipment", 300, "https://images.unsplash.com/photo-1530124566582-a45a7e3f3517?w=400&h=300&fit=crop", True),
         ("Drip Irrigation Kit", "Irrigation Equipment", 250, "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=300&fit=crop", True),
         ("Hose Pipe (100ft)", "Irrigation Equipment", 50, "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=400&h=300&fit=crop", True),
+        # Extra
+        ("Karcher Pressure Washer", "Power Tools", 500, "/images/karcher_pressure_washer.png", True),
     ]
 
     for name, category, price, img, avail in tools_data:

@@ -22,4 +22,26 @@ class WorkerSerializer(serializers.ModelSerializer):
             "rating",
             "availability",
             "price_per_hour",
+            "languages",
+            "bio",
+            "specializations",
+            "response_time_minutes",
+            "is_id_verified",
+            "service_areas",
+            "working_hours_start",
+            "working_hours_end",
+        ]
+
+
+class WorkerUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Worker
+        fields = [
+            "languages",
+            "bio",
+            "specializations",
+            "response_time_minutes",
+            "service_areas",
+            "working_hours_start",
+            "working_hours_end",
         ]

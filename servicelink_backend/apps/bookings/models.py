@@ -53,6 +53,26 @@ class Booking(models.Model):
         default=Status.PENDING,
         db_index=True,
     )
+    booking_type = models.CharField(
+        max_length=20,
+        choices=[('daily', 'Daily'), ('monthly', 'Monthly'), ('hourly', 'Hourly')],
+        default='daily',
+    )
+    working_days = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of day names e.g. ['Mon','Tue','Wed','Thu','Fri','Sat']",
+    )
+    hours_per_day = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Hours per day for hourly/monthly modes",
+    )
+    monthly_duration_months = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Duration in months (1-6 months)",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -76,7 +96,7 @@ class Booking(models.Model):
         return self.worker or self.tool
 
     @property
-    def booking_type(self) -> str:
+    def resource_type(self) -> str:
         return "worker" if self.worker_id else "tool"
 
     def clean(self):
@@ -147,3 +167,54 @@ class IdempotencyKey(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.idempotency_key}"
+
+
+class BookingChangeRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        REJECTED = "rejected", "Rejected"
+
+    booking = models.ForeignKey(
+        Booking,
+        on_delete=models.CASCADE,
+        related_name="change_requests",
+    )
+    requested_by_user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="change_requests_made",
+    )
+    field_name = models.CharField(
+        max_length=255,
+        help_text="Name of the field being requested to change",
+    )
+    old_value = models.TextField(
+        help_text="Previous value of the field",
+    )
+    new_value = models.TextField(
+        help_text="Requested new value of the field",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Change Request #{self.pk} for Booking #{self.booking.pk}"
+
+    def clean(self):
+        # Only allow change requests when booking status is confirmed
+        if self.booking.status != Booking.Status.CONFIRMED:
+            raise ValidationError(
+                "Change requests can only be made for confirmed bookings."
+            )
+        # Never allow changes to payment amount
+        if self.field_name == "total_price":
+            raise ValidationError("Cannot request changes to payment amount.")
