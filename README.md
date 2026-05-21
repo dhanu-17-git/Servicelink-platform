@@ -4,7 +4,7 @@
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
 [![Django](https://img.shields.io/badge/django-%23092E20.svg?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/)
-![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
+![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![Node Version](https://img.shields.io/badge/node-18+-green.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -178,37 +178,51 @@ Request Flow:
 ## 🚀 Quick Start
 
 ### Prerequisites
+- Python v3.12+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Node.js v18+
-- Python v3.10+
+- MySQL 8.x (or use Docker)
 - Docker & Docker Compose (for containerized setup)
 - Git
 
 ### Option 1: Local Development (No Docker)
 
-#### Backend Setup
+#### 1. Environment Setup
+```bash
+# From the project root
+cp .env.example .env
+# Edit .env and set your MySQL password and SECRET_KEY
+```
+
+#### 2. Backend Setup
 ```bash
 cd servicelink_backend
 
-# Create and activate virtual environment
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Mac/Linux: source .venv/bin/activate
+# Install dependencies using uv (creates .venv automatically)
+uv sync --frozen
 
-# Install dependencies
-pip install -r requirements.txt
+# Run database migrations
+uv run python manage.py migrate
 
-# Run migrations
-python manage.py migrate
-
-# Create superuser (optional)
-python manage.py createsuperuser
+# Seed demo data (workers, tools, and demo user)
+uv run python seed_data.py
 
 # Start development server
-python manage.py runserver
+uv run python manage.py runserver
 ```
 ✅ Backend running at `http://localhost:8000`
 
-#### Frontend Setup (New Terminal)
+> **Note:** If you don't have `uv` installed, you can also use pip:
+> ```bash
+> python -m venv .venv
+> # Windows: .venv\Scripts\activate | Mac/Linux: source .venv/bin/activate
+> pip install -r requirements.txt
+> python manage.py migrate
+> python seed_data.py
+> python manage.py runserver
+> ```
+
+#### 3. Frontend Setup (New Terminal)
 ```bash
 cd servicelink_frontend
 
@@ -226,11 +240,18 @@ npm run dev
 ### Option 2: Docker Deployment (Recommended)
 
 ```bash
-# From root directory
+# From root directory — copy and configure environment
+cp .env.example .env
+# Edit .env and set your passwords
+
+# Build and start all services
 docker-compose up --build
 
 # Run migrations inside Docker
 docker-compose exec backend python manage.py migrate
+
+# Seed demo data
+docker-compose exec backend python seed_data.py
 
 # Create superuser (optional)
 docker-compose exec backend python manage.py createsuperuser
@@ -753,25 +774,23 @@ We welcome contributions! Follow these steps:
 
 ### Development Mode
 
-**Customer Account**
+**Customer Account** (created by `seed_data.py`)
 ```
-Email: customer@servicelink.com
-Password: demo@123
+Email: demo@gmail.com
+Password: password123
 Role: Customer
 ```
 
-**Worker Account**
+**Worker Account** (any seeded worker)
 ```
-Email: worker@servicelink.com
-Password: demo@123
+Email: arjun.patel.1@servicelink.com
+Password: password123
 Role: Worker
 ```
 
-**Admin Account**
+**Admin Account** (create via `manage.py createsuperuser`)
 ```
-Email: admin@servicelink.com
-Password: demo@123
-Role: Admin
+python manage.py createsuperuser
 Django Admin: http://localhost:8000/admin
 ```
 
