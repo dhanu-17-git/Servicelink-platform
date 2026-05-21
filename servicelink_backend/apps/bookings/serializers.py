@@ -46,7 +46,7 @@ class BookingSerializer(serializers.ModelSerializer):
         return "worker" if obj.worker_id else "tool"
 
     def get_pending_change_request(self, obj):
-        req = obj.change_requests.filter(status='pending').first()
+        req = obj.change_requests.first()
         if not req:
             return None
         return {
@@ -54,6 +54,7 @@ class BookingSerializer(serializers.ModelSerializer):
             "field_name": req.field_name,
             "old_value": req.old_value,
             "new_value": req.new_value,
+            "status": req.status,
         }
 
 
@@ -321,8 +322,15 @@ class BookingChangeRequestCreateSerializer(serializers.ModelSerializer):
                 "Change requests can only be made for confirmed or in-progress bookings."
             )
 
+        # Restrict supported change request fields
+        field_name = attrs.get("field_name")
+        if field_name not in {"address", "date_time"}:
+            raise serializers.ValidationError(
+                f"Cannot request changes to '{field_name}'. Only date/time and address changes are supported."
+            )
+
         # Never allow changes to payment amount
-        if attrs.get("field_name") == "total_price":
+        if field_name == "total_price":
             raise serializers.ValidationError(
                 "Cannot request changes to payment amount."
             )
@@ -392,9 +400,20 @@ class BookingChangeRequestUpdateSerializer(serializers.ModelSerializer):
             field_name = instance.field_name
             new_value = instance.new_value
 
-            # Update the booking field
-            setattr(booking, field_name, new_value)
-            booking.save()
+            if field_name == "date_time":
+                try:
+                    parts = new_value.strip().split(" ")
+                    if len(parts) >= 2:
+                        booking.date = parts[0]
+                        booking.time = parts[1]
+                        booking.save(update_fields=["date", "time"])
+                except Exception as exc:
+                    raise serializers.ValidationError(
+                        {"detail": f"Failed to parse date/time value: {str(exc)}"}
+                    )
+            elif field_name == "address":
+                booking.address = new_value
+                booking.save(update_fields=["address"])
 
         # If rejected, auto-cancel the booking
         if new_status == BookingChangeRequest.Status.REJECTED and previous_status == BookingChangeRequest.Status.PENDING:

@@ -41,9 +41,9 @@ const Dashboard = () => {
           bookingType: b.booking_type,
           address: b.address,
           createdAt: b.created_at,
-          changeRequestStatus: b.change_request_status,
-          changeRequestField: b.change_request_field,
-          changeRequestValue: b.change_request_value,
+          changeRequestStatus: b.pending_change_request?.status || null,
+          changeRequestField: b.pending_change_request?.field_name || null,
+          changeRequestValue: b.pending_change_request?.new_value || null,
         }));
 
         setBookings(formatted);
@@ -55,6 +55,8 @@ const Dashboard = () => {
     };
 
     fetchBookings();
+    const interval = setInterval(fetchBookings, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const stats = [

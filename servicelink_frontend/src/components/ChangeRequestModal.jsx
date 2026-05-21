@@ -6,7 +6,6 @@ import { useToast } from '../context/ToastContext';
 const changeOptions = [
   { value: 'date_time', label: 'Date & Time', icon: CalendarClock },
   { value: 'address', label: 'Address', icon: Home },
-  { value: 'special_instructions', label: 'Special Instructions', icon: FileText },
 ];
 
 const ChangeRequestModal = ({ booking, isOpen, onClose, onSubmitted }) => {
