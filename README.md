@@ -546,18 +546,22 @@ CREATE TABLE workers_review (
 
 ---
 
-## 🔒 Security Features
+## 🔒 Security Features & Hardening
 
-✅ **JWT Authentication** - Stateless, token-based user authentication  
-✅ **CORS Protection** - Configured origins in Django settings  
-✅ **CSRF Tokens** - CSRF protection via form/API tokens  
-✅ **Password Hashing** - Django's PBKDF2 algorithm  
-✅ **Role-Based Access Control** - Customer/Worker/Admin roles  
-✅ **Secure Headers** - X-Frame-Options, X-Content-Type-Options  
-✅ **Input Validation** - DRF serializers validate all inputs  
-✅ **SQL Injection Prevention** - Django ORM parameterized queries  
-✅ **Rate Limiting Ready** - Architecture supports throttling  
-✅ **Environment Secrets** - Sensitive data in .env files  
+The platform undergoes strict security audits and has been fully hardened against OWASP Top 10 vulnerabilities:
+
+✅ **Secure-by-Default Global Restrictiveness** - Global REST API permissions are set to `IsAuthenticated` by default. Only explicitly marked public endpoints (registration, login, refresh) are exposed.
+✅ **JWT Rotation & Blacklisting** - Implements SimpleJWT refresh token rotation and token blacklisting to prevent stolen tokens from being reused indefinitely.
+✅ **IDOR (Insecure Direct Object Reference) Protection** - Booking action endpoints enforce object-level ownership checks (`IsBookingOwnerOrWorker`) to prevent status updates or access bypass via ID guessing.
+✅ **Dual-Layer Change Request Authz** - Implements strict authorization verification in both the view-set layer (`IsAssignedWorkerForChangeRequest`) and the serializer validator layer to ensure only assigned workers can review change requests.
+✅ **Zero Hardcoded Secrets** - Removed all hardcoded database fallback passwords and brute-force lists from source code. Credentials must be exclusively provided via environment variables.
+✅ **JWT Authentication** - Stateless, secure token-based user authentication.
+✅ **CORS Protection** - Configured origins and trusted domains in Django settings.
+✅ **CSRF Protection** - Strict CSRF verification for forms and sessions.
+✅ **Password Hashing** - Uses PBKDF2 with SHA-256 for secure salted storage of credentials.
+✅ **Role-Based Access Control** - Strict boundaries between Customer, Worker, and Admin profiles.
+✅ **Secure Headers** - Hardened HTTP security headers including X-Frame-Options and X-Content-Type-Options.
+✅ **SQL Injection Prevention** - Django ORM queries enforce parameterized inputs globally.
 
 ---
 
