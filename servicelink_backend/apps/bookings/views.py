@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Booking, IdempotencyKey, BookingChangeRequest
-from .permissions import IsBookingOwner, IsBookingOwnerOrWorker
+from .permissions import IsBookingOwner, IsBookingOwnerOrWorker, IsAssignedWorkerForChangeRequest
 from .serializers import (
     BookingCreateSerializer,
     BookingSerializer,
@@ -20,15 +20,12 @@ from .serializers import (
 
 class BookingChangeRequestViewSet(viewsets.GenericViewSet):
     """Standalone viewset for workers to accept/reject change requests."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAssignedWorkerForChangeRequest]
     queryset = BookingChangeRequest.objects.select_related("booking__worker__user", "booking__user").all()
 
     @action(detail=True, methods=["patch"], url_path="handle")
     def handle(self, request, pk=None):
-        try:
-            change_request = self.queryset.get(pk=pk)
-        except BookingChangeRequest.DoesNotExist:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        change_request = self.get_object()
 
         serializer = BookingChangeRequestUpdateSerializer(
             change_request, data=request.data, partial=True,
@@ -156,7 +153,11 @@ class BookingViewSet(
             permission_classes=[permissions.IsAuthenticated, IsBookingOwnerOrWorker])
     def update_status(self, request, pk=None, *args, **kwargs):
         """Allow worker or user to update booking status."""
-        booking = Booking.objects.select_related("user", "worker__user", "tool").get(pk=pk)
+        try:
+            booking = Booking.objects.select_related("user", "worker__user", "tool").get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({"detail": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
+        self.check_object_permissions(request, booking)
         serializer = BookingUpdateSerializer(
             booking, data=request.data, partial=True, context=self.get_serializer_context()
         )
@@ -207,6 +208,13 @@ class BookingViewSet(
             )
 
         elif request.method == "PATCH":
+            # Verify requester is the assigned worker
+            if not (booking.worker and hasattr(request.user, 'worker_profile')
+                    and booking.worker_id == request.user.worker_profile.id):
+                return Response(
+                    {"detail": "Only the assigned worker can handle change requests."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             # Accept/Reject a change request
             # Get change_request_id from query params
             change_request_id = request.query_params.get("change_request_id") or request.data.get("change_request_id")

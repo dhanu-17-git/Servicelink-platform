@@ -1,14 +1,16 @@
+import os
+
 import pymysql
 
 def setup_db():
     print("Attempting to connect to local MySQL Server...")
     
     credentials = [
-        {"host": "127.0.0.1", "user": "root", "password": "Dhanu@123"},
-        {"host": "localhost", "user": "root", "password": ""},
-        {"host": "localhost", "user": "root", "password": "password"},
-        {"host": "localhost", "user": "root", "password": "root"},
-        {"host": "127.0.0.1", "user": "root", "password": ""},
+        {
+            "host": os.getenv("MYSQL_HOST", "127.0.0.1"),
+            "user": os.getenv("MYSQL_USER", "root"),
+            "password": os.getenv("MYSQL_ROOT_PASSWORD", ""),
+        },
     ]
     
     connection = None
