@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -42,8 +42,8 @@ def database_from_url() -> dict[str, str] | None:
 
     return {
         "NAME": db_name,
-        "USER": parsed.username or "root",
-        "PASSWORD": parsed.password or "",
+        "USER": unquote(parsed.username) if parsed.username else "root",
+        "PASSWORD": unquote(parsed.password) if parsed.password else "",
         "HOST": parsed.hostname or "127.0.0.1",
         "PORT": str(parsed.port or 3306),
     }

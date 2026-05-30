@@ -6,6 +6,19 @@ import os
 import django
 from decimal import Decimal
 
+# Safely load local .env environment variables (zero-dependency)
+for env_path in [".env", "../.env"]:
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        os.environ.setdefault(k.strip(), v.strip())
+        except Exception:
+            pass
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "servicelink.settings.development")
 django.setup()
 
@@ -13,8 +26,10 @@ from apps.accounts.models import User
 from apps.workers.models import Worker
 from apps.tools.models import Tool
 from apps.bookings.models import Booking
+from django.db import transaction
 
 
+@transaction.atomic
 def seed():
     print("=" * 60)
     print("  ServiceLink V2 — Full Data Seed")
@@ -156,6 +171,35 @@ def seed():
                 )
                 
     print(f"  - Successfully generated {worker_count} workers across {len(locations)} locations.")
+
+    # ── STEP 2.5: Create Dedicated Demo Workers with easy-to-remember emails ──
+    print("\nCreating easy-to-remember demo worker accounts...")
+    demo_workers = [
+        ("Edward Sparks", "electrician@demo.com", "Electrician", "Gokulam", 4.9, 200, 8),
+        ("Peter Pipe", "plumber@demo.com", "Plumber", "Jayalakshmipuram", 4.8, 150, 5),
+        ("David Drive", "driver@demo.com", "Driver", "Vijayanagar", 4.7, 600, 10),
+        ("Claire Clean", "cleaner@demo.com", "House cleaner", "Kuvempunagar", 4.9, 120, 4),
+        ("Chris Carpenter", "carpenter@demo.com", "Carpenter", "J.P. Nagar", 4.6, 450, 6)
+    ]
+    for idx, (name, email, skill, city, rating, price, exp) in enumerate(demo_workers):
+        user = User.objects.create_user(
+            email=email,
+            password="password123",
+            name=name,
+            phone=f"999900000{idx}",
+            is_worker=True,
+            city=city,
+            address=f"Demo Street, {city}",
+            pincode="570002",
+        )
+        Worker.objects.create(
+            user=user,
+            skill=skill,
+            experience=exp,
+            rating=Decimal(str(rating)),
+            price_per_hour=Decimal(str(price)),
+            availability=True,
+        )
 
     # ── STEP 3: Create Tools (matching dummyData.js) ──
     print("\n[3/3] Creating 50 tools...")
