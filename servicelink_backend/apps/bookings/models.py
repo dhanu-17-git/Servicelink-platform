@@ -55,7 +55,7 @@ class Booking(models.Model):
     )
     booking_type = models.CharField(
         max_length=20,
-        choices=[('daily', 'Daily'), ('monthly', 'Monthly'), ('hourly', 'Hourly')],
+        choices=[('daily', 'Daily'), ('monthly', 'Monthly'), ('hourly', 'Hourly'), ('tool', 'Tool')],
         default='daily',
     )
     working_days = models.JSONField(

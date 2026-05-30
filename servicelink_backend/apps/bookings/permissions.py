@@ -20,7 +20,10 @@ class IsBookingOwnerOrWorker(permissions.BasePermission):
             return True
         # Assigned worker
         if obj.worker_id and hasattr(request.user, 'worker_profile'):
-            return obj.worker_id == request.user.worker_profile.id
+            try:
+                return obj.worker_id == request.user.worker_profile.id
+            except Exception:
+                return False
         return False
 
 
@@ -28,9 +31,13 @@ class IsAssignedWorkerForChangeRequest(permissions.BasePermission):
     message = "Only the assigned worker can handle this change request."
 
     def has_object_permission(self, request, view, obj) -> bool:
-        return (
-            request.user.is_authenticated
-            and obj.booking.worker
-            and hasattr(request.user, "worker_profile")
-            and obj.booking.worker.id == request.user.worker_profile.id
-        )
+        if not request.user.is_authenticated:
+            return False
+        if not obj.booking.worker:
+            return False
+        if not hasattr(request.user, "worker_profile"):
+            return False
+        try:
+            return obj.booking.worker.id == request.user.worker_profile.id
+        except Exception:
+            return False

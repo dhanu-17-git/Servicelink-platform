@@ -48,6 +48,14 @@ class BookingViewSet(
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
 
+    def get_permissions(self):
+        # Honor action-level permission_classes overrides even when manually routed via as_view()
+        if hasattr(self, "action") and self.action:
+            action_func = getattr(self, self.action, None)
+            if action_func and hasattr(action_func, "permission_classes"):
+                return [permission() for permission in action_func.permission_classes]
+        return super().get_permissions()
+
     def get_serializer_class(self):
         if self.action == "create":
             return BookingCreateSerializer
