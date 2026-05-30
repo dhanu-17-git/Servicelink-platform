@@ -141,7 +141,9 @@ def seed():
                 lname = last_names[(worker_count) % len(last_names)]
                 name = f"{fname} {lname}"
                 
-                email = f"{fname.lower()}.{lname.lower()}.{worker_count}@servicelink.com"
+                email = f"{fname.lower()}.{lname.lower()}@gmail.com"
+                if User.objects.filter(email=email).exists():
+                    email = f"{fname.lower()}.{lname.lower()}{worker_count}@gmail.com"
                 
                 # Randomized but realistic stats
                 rating = round(random.uniform(4.2, 5.0), 1)
@@ -175,11 +177,11 @@ def seed():
     # ── STEP 2.5: Create Dedicated Demo Workers with easy-to-remember emails ──
     print("\nCreating easy-to-remember demo worker accounts...")
     demo_workers = [
-        ("Edward Sparks", "electrician@demo.com", "Electrician", "Gokulam", 4.9, 200, 8),
-        ("Peter Pipe", "plumber@demo.com", "Plumber", "Jayalakshmipuram", 4.8, 150, 5),
-        ("David Drive", "driver@demo.com", "Driver", "Vijayanagar", 4.7, 600, 10),
-        ("Claire Clean", "cleaner@demo.com", "House cleaner", "Kuvempunagar", 4.9, 120, 4),
-        ("Chris Carpenter", "carpenter@demo.com", "Carpenter", "J.P. Nagar", 4.6, 450, 6)
+        ("Edward Sparks", "edward@gmail.com", "Electrician", "Gokulam", 4.9, 200, 8),
+        ("Peter Pipe", "peter@gmail.com", "Plumber", "Jayalakshmipuram", 4.8, 150, 5),
+        ("David Drive", "david@gmail.com", "Driver", "Vijayanagar", 4.7, 600, 10),
+        ("Claire Clean", "claire@gmail.com", "House cleaner", "Kuvempunagar", 4.9, 120, 4),
+        ("Chris Carpenter", "chris@gmail.com", "Carpenter", "J.P. Nagar", 4.6, 450, 6)
     ]
     for idx, (name, email, skill, city, rating, price, exp) in enumerate(demo_workers):
         user = User.objects.create_user(
