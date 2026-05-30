@@ -285,20 +285,18 @@ def seed():
 
     # ── STEP 4: Create Default Customer User ──
     print("\n[4/4] Creating default customer...")
-    if not User.objects.filter(email="demo@gmail.com").exists():
-        User.objects.create_user(
-            email="demo@gmail.com",
-            password="password123",
-            name="Demo Customer",
-            phone="9876500000",
-            is_worker=False,
-            city="Mysore",
-            address="NIE North Campus, Manandavadi Road, Mysore",
-            pincode="570008",
-        )
-        print("  - demo@gmail.com created (Password: password123)")
-    else:
-        print("  - demo@gmail.com already exists.")
+    User.objects.filter(email="demo@gmail.com").delete()
+    User.objects.create_user(
+        email="demo@gmail.com",
+        password="password123",
+        name="Demo Customer",
+        phone="9876500000",
+        is_worker=False,
+        city="Mysore",
+        address="NIE North Campus, Manandavadi Road, Mysore",
+        pincode="570008",
+    )
+    print("  - demo@gmail.com created fresh (Password: password123)")
 
     # ── Summary ──
     print("\n" + "=" * 60)
