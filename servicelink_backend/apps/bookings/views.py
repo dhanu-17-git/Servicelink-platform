@@ -41,12 +41,18 @@ class BookingViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [permissions.IsAuthenticated, IsBookingOwner]
+    permission_classes = [permissions.IsAuthenticated, IsBookingOwnerOrWorker]
     queryset = Booking.objects.select_related("user", "worker__user", "tool").all()
     http_method_names = ["get", "post", "patch"]
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+        from django.db.models import Q
+        user = self.request.user
+        if not user.is_authenticated:
+            return self.queryset.none()
+        if user.is_worker and hasattr(user, 'worker_profile'):
+            return self.queryset.filter(Q(user=user) | Q(worker=user.worker_profile))
+        return self.queryset.filter(user=user)
 
     def get_permissions(self):
         # Honor action-level permission_classes overrides even when manually routed via as_view()
